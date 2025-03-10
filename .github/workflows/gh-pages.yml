@@ -22,13 +22,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
       
+      # 准备部署文件，只包含 example/index.html 和 dist 目录
+      - name: Prepare deployment files
+        run: |
+          mkdir -p deploy
+          cp example/index.html deploy/
+          cp -r dist deploy/
+      
       - name: Setup Pages
         uses: actions/configure-pages@v3
       
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3  # 更新到v3版本，这是当前GitHub Pages部署的推荐版本
+        uses: actions/upload-pages-artifact@v3
         with:
-          path: '.'  # 上传整个仓库
+          path: 'deploy'  # 只上传包含 index.html 和 dist 的目录
   
   deploy:
     environment:
@@ -39,4 +46,4 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4  # 使用最新的v4版本
+        uses: actions/deploy-pages@v4
