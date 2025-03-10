@@ -17,9 +17,7 @@
 10. 演示页面可以使用http-server进行启动，http-server已经全局安装了
 11. 包管理工具使用pnpm
 12. 使用typescript进行开发
-13. 可以参考scroll-view/index.js的代码，但是这个仅实现了滚动加载没有实现虚拟列表，另外也不完全满足需求
-14. 设计文档和参考代码不一致的地方，以文档为主
-15. 组件只在has-next-page为true时触发end-reached事件，避免在没有更多数据时重复触发加载事件
+13. 组件只在has-next-page为true时触发end-reached事件，避免在没有更多数据时重复触发加载事件
 
 ## 用户使用设计
 ```
