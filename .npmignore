@@ -1,0 +1,26 @@
+# 源代码
+src/
+test/
+demo/
+
+# 配置文件
+.github/
+.gitignore
+.npmrc
+jest.config.js
+tsconfig.json
+rollup.config.mjs
+
+# 开发工具配置
+.vscode/
+.idea/
+.DS_Store
+
+# 临时文件和日志
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.eslintcache
+coverage/

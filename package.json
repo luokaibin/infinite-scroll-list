@@ -1,14 +1,20 @@
 {
-  "name": "infinite-scroll-list",
+  "name": "@wc-lib/infinite-scroll-list",
   "version": "1.0.0",
   "description": "Web Component for infinite scroll loading",
   "type": "module",
   "main": "dist/infinite-scroll-list.min.js",
   "types": "dist/infinite-scroll-list.d.ts",
+  "files": [
+    "dist/",
+    "LICENSE",
+    "README.md"
+  ],
   "scripts": {
     "build": "rollup -c",
     "dev": "rollup -c -w",
-    "serve": "http-server -p 8080"
+    "serve": "http-server -p 8080",
+    "prepublishOnly": "npm run build"
   },
   "keywords": [
     "web-component",
@@ -24,5 +30,8 @@
     "rollup-plugin-terser": "^7.0.2",
     "tslib": "^2.5.0",
     "typescript": "^5.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
