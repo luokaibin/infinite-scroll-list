@@ -471,6 +471,192 @@
   
   <a href="https://github.com/luokaibin/infinite-scroll-list" target="_blank" class="github-link">在GitHub上查看源码</a>
   
+  <h2>双向无限滚动示例</h2>
+  
+  <div class="description">
+    <p>组件也支持双向无限滚动功能，可以同时向上和向下加载数据。</p>
+    <p>此示例演示了如何使用双向无限滚动功能，包括向上滚动加载上一页数据和向下滚动加载下一页数据。</p>
+  </div>
+  
+  <table class="property-table">
+    <thead>
+      <tr>
+        <th>新增属性名</th>
+        <th>类型</th>
+        <th>默认值</th>
+        <th>说明</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>on-start-reached-threshold</td>
+        <td>Number</td>
+        <td>0</td>
+        <td>距离顶部多少像素时触发加载事件</td>
+      </tr>
+      <tr>
+        <td>has-previous-page</td>
+        <td>Boolean</td>
+        <td>false</td>
+        <td>是否还有上一页数据</td>
+      </tr>
+    </tbody>
+  </table>
+  
+  <table class="property-table">
+    <thead>
+      <tr>
+        <th>新增事件名</th>
+        <th>说明</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>start-reached</td>
+        <td>滚动到顶部时触发，只有当has-previous-page为true时才会触发</td>
+      </tr>
+    </tbody>
+  </table>
+  
+  <table class="property-table">
+    <thead>
+      <tr>
+        <th>新增插槽名</th>
+        <th>说明</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>top-loading</td>
+        <td>顶部加载中状态的显示内容</td>
+      </tr>
+    </tbody>
+  </table>
+  
+  <h3>双向滚动使用示例</h3>
+  
+  <div class="code-block">
+&lt;infinite-scroll-list
+  id="scrollView"
+  on-start-reached-threshold="100"
+  has-previous-page="true"
+  on-end-reached-threshold="100"
+  has-next-page="true"
+&gt;
+  &lt;div id="list-container"&gt;
+    &lt;!-- 列表内容 --&gt;
+  &lt;/div&gt;
+  
+  &lt;!-- 顶部加载中显示 --&gt;
+  &lt;div slot="top-loading"&gt;正在加载上一页数据...&lt;/div&gt;
+  
+  &lt;!-- 底部加载中显示 --&gt;
+  &lt;div slot="loading"&gt;正在加载下一页数据...&lt;/div&gt;
+  
+  &lt;!-- 无数据显示 --&gt;
+  &lt;div slot="no-data"&gt;已经到底啦，没有更多数据了！&lt;/div&gt;
+&lt;/infinite-scroll-list&gt;
+
+&lt;script&gt;
+  const scrollView = document.getElementById('scrollView');
+  
+  // 监听滚动到底部事件
+  scrollView.addEventListener('end-reached', async () => {
+    // 加载下一页数据
+    const moreData = await fetchNextPageData();
+    
+    // 更新列表内容（添加到底部）
+    appendDataToList(moreData);
+    
+    // 如果没有更多下一页数据，更新has-next-page属性
+    if (!hasMoreNextData) {
+      scrollView.setAttribute('has-next-page', 'false');
+    }
+  });
+  
+  // 监听滚动到顶部事件
+  scrollView.addEventListener('start-reached', async () => {
+    // 加载上一页数据
+    const previousData = await fetchPreviousPageData();
+    
+    // 更新列表内容（添加到顶部）
+    prependDataToList(previousData);
+    
+    // 如果没有更多上一页数据，更新has-previous-page属性
+    if (!hasMorePreviousData) {
+      scrollView.setAttribute('has-previous-page', 'false');
+    }
+  });
+&lt;/script&gt;
+  </div>
+  
+  <div class="demo-section" style="border: 1px solid #ddd; border-radius: 8px; padding: 15px; margin-bottom: 30px;">
+    <h3 class="demo-title">双向滚动演示</h3>
+    
+    <div class="controls">
+      <div>
+        <label for="start-threshold">顶部触发距离：</label>
+        <input type="number" id="start-threshold" value="100" min="0" max="500">
+        
+        <label for="end-threshold" style="margin-left: 15px;">底部触发距离：</label>
+        <input type="number" id="end-threshold" value="100" min="0" max="500">
+      </div>
+      <div>
+        <button id="resetBtn3">重置数据</button>
+      </div>
+    </div>
+    
+    <div class="switch-container">
+      <label class="switch">
+        <input type="checkbox" id="hasPreviousPage" checked>
+        <span class="slider"></span>
+      </label>
+      <span>has-previous-page</span>
+      
+      <label class="switch" style="margin-left: 20px;">
+        <input type="checkbox" id="hasNextPage3" checked>
+        <span class="slider"></span>
+      </label>
+      <span>has-next-page</span>
+    </div>
+    
+    <div class="container-with-overflow">
+      <infinite-scroll-list
+        id="scrollView3"
+        on-start-reached-threshold="100"
+        has-previous-page="true"
+        on-end-reached-threshold="100"
+        has-next-page="true"
+      >
+        <div id="list-container3">
+          <!-- 初始数据将通过JS加载 -->
+        </div>
+        
+        <!-- 顶部加载中显示 -->
+        <div slot="top-loading" class="custom-loading">
+          <svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <circle class="spinner" cx="12" cy="12" r="10" fill="none" stroke="#4CAF50" stroke-width="2" stroke-dasharray="30 60" />
+          </svg>
+          <p>正在加载上一页数据...</p>
+        </div>
+        
+        <!-- 底部加载中显示 -->
+        <div slot="loading" class="custom-loading">
+          <svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <circle class="spinner" cx="12" cy="12" r="10" fill="none" stroke="#4CAF50" stroke-width="2" stroke-dasharray="30 60" />
+          </svg>
+          <p>正在加载下一页数据...</p>
+        </div>
+        
+        <!-- 无数据显示 -->
+        <div slot="no-data" class="custom-no-data">
+          <p>已经到底啦，没有更多数据了！</p>
+        </div>
+      </infinite-scroll-list>
+    </div>
+    <p><strong>特点：</strong>支持双向滚动加载，可同时向上和向下滚动加载数据</p>
+  </div>
+  
   <footer>
     <p> 2025 无限滚动加载组件</p>
   </footer>
@@ -620,6 +806,154 @@
     // 加载初始数据
     loadInitialData1();
     loadInitialData2();
+    
+    // 双向滚动示例的状态
+    let currentPage3 = 10; // 从中间页面开始
+    const totalPages3 = 20; // 总共20页，当前在第10页
+    let isLoading3 = false;
+    let scrollPos = 0;
+    
+    // 加载双向滚动示例的初始数据
+    const loadInitialData3 = () => {
+      const items = generateItems(currentPage3 * itemsPerPage - itemsPerPage + 1, itemsPerPage);
+      document.getElementById('list-container3').innerHTML = '';
+      
+      items.forEach(item => {
+        const itemElement = document.createElement('div');
+        itemElement.className = 'list-item';
+        itemElement.innerHTML = `
+          <h3>${item.title}</h3>
+          <p>${item.description}</p>
+        `;
+        document.getElementById('list-container3').appendChild(itemElement);
+      });
+      
+      currentPage3 = 10; // 重置到第10页
+      
+      const scrollView3 = document.getElementById('scrollView3');
+      scrollView3.setAttribute('has-next-page', currentPage3 < totalPages3 ? 'true' : 'false');
+      scrollView3.setAttribute('has-previous-page', currentPage3 > 1 ? 'true' : 'false');
+      
+      // 设置状态开关
+      document.getElementById('hasNextPage3').checked = currentPage3 < totalPages3;
+      document.getElementById('hasPreviousPage').checked = currentPage3 > 1;
+      
+      // 重置滚动位置
+      setTimeout(() => {
+        const container = document.getElementById('scrollView3').parentElement;
+        container.scrollTop = 0;
+      }, 100);
+    };
+    
+    // 加载下一页数据
+    const loadNextPage3 = async () => {
+      if (isLoading3 || currentPage3 >= totalPages3) return;
+      
+      isLoading3 = true;
+      
+      // 模拟网络请求延迟
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      currentPage3++;
+      const newItems = generateItems(currentPage3 * itemsPerPage - itemsPerPage + 1, itemsPerPage);
+      
+      const container = document.getElementById('list-container3');
+      newItems.forEach(item => {
+        const itemElement = document.createElement('div');
+        itemElement.className = 'list-item';
+        itemElement.innerHTML = `
+          <h3>${item.title}</h3>
+          <p>${item.description}</p>
+        `;
+        container.appendChild(itemElement);
+      });
+      
+      const scrollView3 = document.getElementById('scrollView3');
+      scrollView3.setAttribute('has-next-page', currentPage3 < totalPages3 ? 'true' : 'false');
+      
+      isLoading3 = false;
+    };
+    
+    // 加载上一页数据
+    const loadPreviousPage3 = async () => {
+      if (isLoading3 || currentPage3 <= 1) return;
+      
+      isLoading3 = true;
+      
+      // 保存当前滚动位置
+      const container = document.getElementById('scrollView3').parentElement;
+      scrollPos = container.scrollHeight;
+      
+      // 模拟网络请求延迟
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      currentPage3--;
+      const newItems = generateItems(currentPage3 * itemsPerPage - itemsPerPage + 1, itemsPerPage);
+      
+      const listContainer = document.getElementById('list-container3');
+      newItems.reverse().forEach(item => {
+        const itemElement = document.createElement('div');
+        itemElement.className = 'list-item';
+        itemElement.innerHTML = `
+          <h3>${item.title}</h3>
+          <p>${item.description}</p>
+        `;
+        listContainer.insertBefore(itemElement, listContainer.firstChild);
+      });
+      
+      const scrollView3 = document.getElementById('scrollView3');
+      scrollView3.setAttribute('has-previous-page', currentPage3 > 1 ? 'true' : 'false');
+      
+      // 恢复滚动位置
+      setTimeout(() => {
+        container.scrollTop = container.scrollHeight - scrollPos;
+      }, 0);
+      
+      isLoading3 = false;
+    };
+    
+    // 监听示例3滚动到底部事件
+    const scrollView3 = document.getElementById('scrollView3');
+    scrollView3.addEventListener('end-reached', async () => {
+      console.log('双向滚动示例触发加载下一页事件');
+      await loadNextPage3();
+    });
+    
+    // 监听示例3滚动到顶部事件
+    scrollView3.addEventListener('start-reached', async () => {
+      console.log('双向滚动示例触发加载上一页事件');
+      await loadPreviousPage3();
+    });
+    
+    // 监听双向滚动示例的触发距离变化
+    const startThresholdInput = document.getElementById('start-threshold');
+    startThresholdInput.addEventListener('change', () => {
+      scrollView3.setAttribute('on-start-reached-threshold', startThresholdInput.value);
+    });
+    
+    const endThresholdInput = document.getElementById('end-threshold');
+    endThresholdInput.addEventListener('change', () => {
+      scrollView3.setAttribute('on-end-reached-threshold', endThresholdInput.value);
+    });
+    
+    // 监听双向滚动示例的重置按钮
+    const resetBtn3 = document.getElementById('resetBtn3');
+    resetBtn3.addEventListener('click', loadInitialData3);
+    
+    // 监听双向滚动示例的has-next-page开关
+    const hasNextPage3 = document.getElementById('hasNextPage3');
+    hasNextPage3.addEventListener('change', () => {
+      scrollView3.setAttribute('has-next-page', hasNextPage3.checked ? 'true' : 'false');
+    });
+    
+    // 监听双向滚动示例的has-previous-page开关
+    const hasPreviousPage = document.getElementById('hasPreviousPage');
+    hasPreviousPage.addEventListener('change', () => {
+      scrollView3.setAttribute('has-previous-page', hasPreviousPage.checked ? 'true' : 'false');
+    });
+    
+    // 加载双向滚动示例的初始数据
+    loadInitialData3();
   </script>
 </body>
 </html>
