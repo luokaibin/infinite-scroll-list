@@ -9,6 +9,9 @@
  * 5. 支持在body中使用，也支持在父或祖先元素overflow-y: auto的元素中使用
  * 6. 自适应父元素大小变化
  * 7. 组件只在has-next-page为true时触发end-reached事件
+ * 8. 支持向上加载功能，通过has-previous-page控制是否有上一页
+ * 9. 支持传入距离顶部的距离参数(on-start-reached-threshold)
+ * 10. 组件只在has-previous-page为true时触发start-reached事件
  */
 
 // 定义组件的样式
@@ -31,6 +34,10 @@ const style = `
   bottom: 0px;
 }
 
+.top-0 {
+  top: 0px;
+}
+
 .z-\\[-1\\] {
   z-index: -1;
 }
@@ -48,13 +55,26 @@ const style = `
 }
 `;
 
+// 定义观察器类型
+enum ObserverType {
+  Top = 'top',
+  Bottom = 'bottom'
+}
+
+// 定义槽类型
+enum SlotType {
+  TopLoading = 'top-loading',
+  Loading = 'loading',
+  NoData = 'no-data'
+}
+
 class InfiniteScrollList extends HTMLElement {
   // 私有属性
-  private _observerRef: IntersectionObserver | null = null;
+  private _observers: Map<ObserverType, IntersectionObserver | null> = new Map();
   private _resizeObserverRef: ResizeObserver | null = null;
-  private _bottomRef: HTMLDivElement | null = null;
-  private _onEndReachedThreshold: number = 0;
-  private _hasNextPage: boolean = false;
+  private _refElements: Map<ObserverType, HTMLDivElement | null> = new Map();
+  private _thresholds: Map<string, number> = new Map();
+  private _flags: Map<string, boolean> = new Map();
   private _container: HTMLDivElement | null = null;
 
   constructor() {
@@ -63,6 +83,12 @@ class InfiniteScrollList extends HTMLElement {
     // 创建 Shadow DOM
     this.attachShadow({ mode: 'open' });
     
+    // 初始化Maps
+    this._observers.set(ObserverType.Top, null);
+    this._observers.set(ObserverType.Bottom, null);
+    this._refElements.set(ObserverType.Top, null);
+    this._refElements.set(ObserverType.Bottom, null);
+    
     // 绑定回调函数，避免this指向问题
     this._intersectionCallback = this._intersectionCallback.bind(this);
     this._resizeCallback = this._resizeCallback.bind(this);
@@ -70,42 +96,66 @@ class InfiniteScrollList extends HTMLElement {
 
   // 定义观察的属性
   static get observedAttributes(): string[] {
-    return ['on-end-reached-threshold', 'has-next-page'];
+    return ['on-end-reached-threshold', 'has-next-page', 'on-start-reached-threshold', 'has-previous-page'];
   }
 
   // 属性变化时的回调
   attributeChangedCallback(name: string, oldValue: string, newValue: string): void {
     if (oldValue === newValue) return;
     
-    if (name === 'on-end-reached-threshold') {
-      this._onEndReachedThreshold = Number(newValue) || 0;
-      if (this._bottomRef) {
-        this._bottomRef.style.height = `${this._onEndReachedThreshold}px`;
-      }
-    } else if (name === 'has-next-page') {
-      this._hasNextPage = newValue !== null && newValue !== 'false';
-      this._updateSlotVisibility();
+    switch (name) {
+      case 'on-end-reached-threshold':
+        this._updateThreshold('end', newValue);
+        break;
+      case 'on-start-reached-threshold':
+        this._updateThreshold('start', newValue);
+        break;
+      case 'has-next-page':
+        this._updateFlag('nextPage', newValue);
+        this._updateSlotVisibility(SlotType.Loading, SlotType.NoData, this._flags.get('nextPage') || false);
+        break;
+      case 'has-previous-page':
+        this._updateFlag('previousPage', newValue);
+        this._updateSlotVisibility(SlotType.TopLoading, null, this._flags.get('previousPage') || false);
+        break;
     }
+  }
+
+  // 更新阈值
+  private _updateThreshold(type: string, value: string): void {
+    const threshold = Number(value) || 0;
+    this._thresholds.set(type, threshold);
+    
+    const refElement = type === 'end' 
+      ? this._refElements.get(ObserverType.Bottom)
+      : this._refElements.get(ObserverType.Top);
+      
+    if (refElement) {
+      refElement.style.height = `${threshold}px`;
+    }
+  }
+
+  // 更新标志
+  private _updateFlag(type: string, value: string): void {
+    this._flags.set(type, value !== null && value !== 'false');
   }
 
   // 组件连接到 DOM 时
   connectedCallback(): void {
     // 初始化属性默认值
-    this._onEndReachedThreshold = Number(this.getAttribute('on-end-reached-threshold')) || 0;
-    this._hasNextPage = this.getAttribute('has-next-page') !== 'false';
+    this._thresholds.set('end', Number(this.getAttribute('on-end-reached-threshold')) || 0);
+    this._thresholds.set('start', Number(this.getAttribute('on-start-reached-threshold')) || 0);
+    this._flags.set('nextPage', this.getAttribute('has-next-page') !== 'false');
+    this._flags.set('previousPage', this.getAttribute('has-previous-page') !== 'false');
     
     // 渲染组件
     this._render();
     
-    // 初始化 IntersectionObserver
-    this._observerRef = new IntersectionObserver(this._intersectionCallback, {
-      threshold: 0.0,
-      root: this._findScrollContainer()
-    });
+    const scrollContainer = this._findScrollContainer();
     
-    if (this._bottomRef) {
-      this._observerRef.observe(this._bottomRef);
-    }
+    // 初始化观察器
+    this._initObserver(ObserverType.Bottom, scrollContainer);
+    this._initObserver(ObserverType.Top, scrollContainer);
 
     // 初始化 ResizeObserver 监听父元素大小变化
     this._resizeObserverRef = new ResizeObserver(this._resizeCallback);
@@ -114,13 +164,30 @@ class InfiniteScrollList extends HTMLElement {
     }
   }
 
+  // 初始化观察器
+  private _initObserver(type: ObserverType, root: Element | null): void {
+    const observer = new IntersectionObserver(
+      (entries) => this._intersectionCallback(entries, type),
+      { threshold: 0.0, root }
+    );
+    
+    const refElement = this._refElements.get(type);
+    if (refElement) {
+      observer.observe(refElement);
+    }
+    
+    this._observers.set(type, observer);
+  }
+
   // 组件从 DOM 断开连接时
   disconnectedCallback(): void {
     // 清理 IntersectionObserver
-    if (this._observerRef) {
-      this._observerRef.disconnect();
-      this._observerRef = null;
-    }
+    this._observers.forEach(observer => {
+      if (observer) {
+        observer.disconnect();
+      }
+    });
+    this._observers.clear();
 
     // 清理 ResizeObserver
     if (this._resizeObserverRef) {
@@ -144,15 +211,28 @@ class InfiniteScrollList extends HTMLElement {
     return null; // 如果没有找到滚动容器，则返回null，使用默认的viewport
   }
 
-  // IntersectionObserver 回调
-  private _intersectionCallback(entries: IntersectionObserverEntry[]): void {
+  // IntersectionObserver 统一回调
+  private _intersectionCallback(entries: IntersectionObserverEntry[], type: ObserverType): void {
     const [target] = entries;
     if (!(target.isIntersecting)) return;
     
-    // 只在有下一页时触发事件
-    if (this._hasNextPage) {
+    const eventConfig = {
+      [ObserverType.Bottom]: {
+        flag: 'nextPage',
+        event: 'end-reached'
+      },
+      [ObserverType.Top]: {
+        flag: 'previousPage',
+        event: 'start-reached'
+      }
+    };
+    
+    const config = eventConfig[type];
+    
+    // 只在标志为true时触发事件
+    if (this._flags.get(config.flag)) {
       // 触发自定义事件
-      this.dispatchEvent(new CustomEvent('end-reached', {
+      this.dispatchEvent(new CustomEvent(config.event, {
         bubbles: true,
         composed: true
       }));
@@ -160,31 +240,45 @@ class InfiniteScrollList extends HTMLElement {
   }
 
   // ResizeObserver 回调
-  private _resizeCallback(entries: ResizeObserverEntry[]): void {
+  private _resizeCallback(): void {
     // 当父元素大小变化时，重新初始化观察器
-    if (this._observerRef) {
-      this._observerRef.disconnect();
-      
-      this._observerRef = new IntersectionObserver(this._intersectionCallback, {
-        threshold: 0.0,
-        root: this._findScrollContainer()
-      });
-      
-      if (this._bottomRef) {
-        this._observerRef.observe(this._bottomRef);
+    const scrollContainer = this._findScrollContainer();
+    
+    // 重新初始化所有观察器
+    this._observers.forEach((observer, type) => {
+      if (observer) {
+        observer.disconnect();
+        this._initObserver(type, scrollContainer);
+      }
+    });
+  }
+
+  // 更新插槽可见性
+  private _updateSlotVisibility(showSlot: SlotType, hideSlot: SlotType | null, condition: boolean): void {
+    const showSlotElement = this.shadowRoot?.querySelector(`.${showSlot}-slot`);
+    
+    if (showSlotElement) {
+      showSlotElement.className = condition ? `${showSlot}-slot contents` : `${showSlot}-slot hidden`;
+    }
+    
+    if (hideSlot) {
+      const hideSlotElement = this.shadowRoot?.querySelector(`.${hideSlot}-slot`);
+      if (hideSlotElement) {
+        hideSlotElement.className = condition ? `${hideSlot}-slot hidden` : `${hideSlot}-slot contents`;
       }
     }
   }
 
-  // 更新插槽可见性
-  private _updateSlotVisibility(): void {
-    const loadingSlot = this.shadowRoot?.querySelector('.loading-slot');
-    const noDataSlot = this.shadowRoot?.querySelector('.no-data-slot');
+  // 创建带有具名插槽的容器
+  private _createSlotContainer(slotName: string, isVisible: boolean): HTMLDivElement {
+    const container = document.createElement('div');
+    container.className = isVisible ? `${slotName}-slot contents` : `${slotName}-slot hidden`;
     
-    if (loadingSlot && noDataSlot) {
-      loadingSlot.className = this._hasNextPage ? 'loading-slot contents' : 'loading-slot hidden';
-      noDataSlot.className = this._hasNextPage ? 'no-data-slot hidden' : 'no-data-slot contents';
-    }
+    const slot = document.createElement('slot');
+    slot.setAttribute('name', slotName);
+    
+    container.appendChild(slot);
+    return container;
   }
 
   // 渲染组件
@@ -201,35 +295,35 @@ class InfiniteScrollList extends HTMLElement {
     this._container.setAttribute('part', 'container');
     this._container.className = 'relative';
     
+    // 创建顶部观察元素
+    const topRef = document.createElement('div');
+    topRef.className = 'absolute top-0 z-[-1]';
+    topRef.style.height = `${this._thresholds.get('start')}px`;
+    this._refElements.set(ObserverType.Top, topRef);
+    
     // 创建底部观察元素
-    this._bottomRef = document.createElement('div');
-    this._bottomRef.className = 'absolute bottom-0 z-[-1]';
-    this._bottomRef.style.height = `${this._onEndReachedThreshold}px`;
+    const bottomRef = document.createElement('div');
+    bottomRef.className = 'absolute bottom-0 z-[-1]';
+    bottomRef.style.height = `${this._thresholds.get('end')}px`;
+    this._refElements.set(ObserverType.Bottom, bottomRef);
+    
+    // 创建顶部加载中插槽
+    const hasPreviousPage = this._flags.get('previousPage') || false;
+    const topLoadingSlot = this._createSlotContainer(SlotType.TopLoading, hasPreviousPage);
     
     // 创建内容插槽
     const defaultSlot = document.createElement('slot');
     
-    // 创建加载中插槽
-    const loadingSlot = document.createElement('div');
-    loadingSlot.className = this._hasNextPage ? 'loading-slot contents' : 'loading-slot hidden';
-    
-    const loadingNamedSlot = document.createElement('slot');
-    loadingNamedSlot.setAttribute('name', 'loading');
-    
-    loadingSlot.appendChild(loadingNamedSlot);
-    
-    // 创建无数据插槽
-    const noDataSlot = document.createElement('div');
-    noDataSlot.className = this._hasNextPage ? 'no-data-slot hidden' : 'no-data-slot contents';
-    
-    const noDataNamedSlot = document.createElement('slot');
-    noDataNamedSlot.setAttribute('name', 'no-data');
-    
-    noDataSlot.appendChild(noDataNamedSlot);
+    // 创建底部加载中和无数据插槽
+    const hasNextPage = this._flags.get('nextPage') || false;
+    const loadingSlot = this._createSlotContainer(SlotType.Loading, hasNextPage);
+    const noDataSlot = this._createSlotContainer(SlotType.NoData, !hasNextPage);
     
     // 组装组件
-    this._container.appendChild(this._bottomRef);
+    this._container.appendChild(topRef);
+    this._container.appendChild(topLoadingSlot);
     this._container.appendChild(defaultSlot);
+    this._container.appendChild(bottomRef);
     this._container.appendChild(loadingSlot);
     this._container.appendChild(noDataSlot);
     

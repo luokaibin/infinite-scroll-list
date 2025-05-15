@@ -11,6 +11,8 @@
 - 支持在body或任何overflow-y: auto/scroll的容器中使用
 - 自适应父元素大小变化
 - 只在有下一页时触发加载事件，避免重复加载
+- **支持双向无限滚动**，可向上和向下加载数据
+- 支持分别设置顶部和底部的触发距离
 
 ## 安装
 
@@ -24,7 +26,7 @@ pnpm build
 
 ## 使用方法
 
-### 基本用法
+### 基本用法（向下滚动）
 
 ```html
 <infinite-scroll-list
@@ -61,30 +63,106 @@ pnpm build
 </script>
 ```
 
+### 双向滚动用法
+
+<!-- 
+属性说明:
+- on-start-reached-threshold: 距离顶部多少像素时触发加载事件
+- has-previous-page: 是否还有上一页数据
+- on-end-reached-threshold: 距离底部多少像素时触发加载事件
+- has-next-page: 是否还有下一页数据
+-->
+
+```html
+<infinite-scroll-list
+  id="scrollView"
+  on-start-reached-threshold="100"  
+  has-previous-page="true"          
+  on-end-reached-threshold="100"    
+  has-next-page="true"              
+>
+  <div id="list-container">
+    <!-- 列表内容 -->
+  </div>
+  
+  <!-- 顶部加载中显示 -->
+  <div slot="top-loading">正在加载上一页数据...</div>
+  
+  <!-- 底部加载中显示 -->
+  <div slot="loading">正在加载下一页数据...</div>
+  
+  <!-- 自定义无数据显示 -->
+  <div slot="no-data">已经到底啦，没有更多数据了！</div>
+</infinite-scroll-list>
+
+<script>
+  const scrollView = document.getElementById('scrollView');
+  
+  // 监听向下滚动事件
+  scrollView.addEventListener('end-reached', async () => {
+    // 加载下一页数据
+    const nextData = await fetchNextPageData();
+    
+    // 将数据添加到列表底部
+    appendDataToList(nextData);
+    
+    // 如果没有更多下一页数据，更新has-next-page属性
+    if (!hasMoreNextData) {
+      scrollView.setAttribute('has-next-page', 'false');
+    }
+  });
+  
+  // 监听向上滚动事件
+  scrollView.addEventListener('start-reached', async () => {
+    // 保存当前滚动位置（可选，用于维持滚动位置）
+    const scrollPos = listContainer.scrollHeight;
+    
+    // 加载上一页数据
+    const prevData = await fetchPrevPageData();
+    
+    // 将数据添加到列表顶部
+    prependDataToList(prevData);
+    
+    // 如果没有更多上一页数据，更新has-previous-page属性
+    if (!hasMorePrevData) {
+      scrollView.setAttribute('has-previous-page', 'false');
+    }
+    
+    // 恢复滚动位置（可选，避免滚动跳动）
+    const newHeight = listContainer.scrollHeight;
+    listContainer.scrollTop = newHeight - scrollPos;
+  });
+</script>
+```
+
 ### 属性
 
 | 属性名 | 类型 | 默认值 | 说明 |
 | --- | --- | --- | --- |
 | on-end-reached-threshold | Number | 0 | 距离底部多少像素时触发加载事件 |
 | has-next-page | Boolean | false | 是否还有下一页数据 |
+| on-start-reached-threshold | Number | 0 | 距离顶部多少像素时触发加载事件 |
+| has-previous-page | Boolean | false | 是否还有上一页数据 |
 
 ### 事件
 
 | 事件名 | 说明 |
 | --- | --- |
 | end-reached | 滚动到底部时触发，只有当has-next-page为true时才会触发 |
+| start-reached | 滚动到顶部时触发，只有当has-previous-page为true时才会触发 |
 
 ### 插槽
 
 | 插槽名 | 说明 |
 | --- | --- |
 | default | 默认插槽，用于放置列表内容 |
-| loading | 加载中状态的显示内容 |
+| loading | 底部加载中状态的显示内容 |
+| top-loading | 顶部加载中状态的显示内容 |
 | no-data | 没有更多数据时的显示内容 |
 
 ## 示例
 
-查看 `example/index.html` 获取完整示例。
+查看 `example/index.html` 获取完整示例，包括单向滚动和双向滚动的演示。
 
 ## 开发
 
