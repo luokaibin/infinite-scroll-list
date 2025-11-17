@@ -10,14 +10,13 @@
  * 6. 自适应父元素大小变化
  * 7. 组件只在has-next-page为true时触发end-reached事件
  */
-declare const style = "\n:host {\n  display: block;\n  width: 100%;\n  height: 100%;\n}\n\n.relative {\n  position: relative;\n}\n\n.absolute {\n  position: absolute;\n}\n\n.bottom-0 {\n  bottom: 0px;\n}\n\n.z-\\[-1\\] {\n  z-index: -1;\n}\n\n.w-full {\n  width: 100%;\n}\n\n.hidden {\n  display: none;\n}\n\n.contents {\n  display: contents;\n}\n";
+declare const style = "\n:host {\n  display: block;\n  width: 100%;\n  height: 100%;\n}\n\n.bottom-ref {\n  width: 0;\n  height: 0;\n  pointer-events: none;\n}\n\n.w-full {\n  width: 100%;\n}\n\n.hidden {\n  display: none;\n}\n\n.contents {\n  display: contents;\n}\n";
 declare class InfiniteScrollList extends HTMLElement {
     private _observerRef;
     private _resizeObserverRef;
     private _bottomRef;
     private _onEndReachedThreshold;
     private _hasNextPage;
-    private _container;
     constructor();
     static get observedAttributes(): string[];
     attributeChangedCallback(name: string, oldValue: string, newValue: string): void;

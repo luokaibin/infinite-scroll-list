@@ -19,20 +19,10 @@ const style = `
   height: 100%;
 }
 
-.relative {
-  position: relative;
-}
-
-.absolute {
-  position: absolute;
-}
-
-.bottom-0 {
-  bottom: 0px;
-}
-
-.z-\\[-1\\] {
-  z-index: -1;
+.bottom-ref {
+  width: 0;
+  height: 0;
+  pointer-events: none;
 }
 
 .w-full {
@@ -55,7 +45,6 @@ class InfiniteScrollList extends HTMLElement {
   private _bottomRef: HTMLDivElement | null = null;
   private _onEndReachedThreshold: number = 0;
   private _hasNextPage: boolean = false;
-  private _container: HTMLDivElement | null = null;
 
   constructor() {
     super();
@@ -80,7 +69,9 @@ class InfiniteScrollList extends HTMLElement {
     if (name === 'on-end-reached-threshold') {
       this._onEndReachedThreshold = Number(newValue) || 0;
       if (this._bottomRef) {
-        this._bottomRef.style.height = `${this._onEndReachedThreshold}px`;
+        // 使用 margin-top 负值来实现距离阈值
+        // 当滚动到距离底部还有 threshold 像素时，_bottomRef 会进入视口
+        this._bottomRef.style.marginTop = `${-this._onEndReachedThreshold}px`;
       }
     } else if (name === 'has-next-page') {
       this._hasNextPage = newValue !== null && newValue !== 'false';
@@ -196,18 +187,13 @@ class InfiniteScrollList extends HTMLElement {
     styleElement.textContent = style;
     this.shadowRoot.appendChild(styleElement);
     
-    // 创建容器
-    this._container = document.createElement('div');
-    this._container.setAttribute('part', 'container');
-    this._container.className = 'relative';
-    
-    // 创建底部观察元素
-    this._bottomRef = document.createElement('div');
-    this._bottomRef.className = 'absolute bottom-0 z-[-1]';
-    this._bottomRef.style.height = `${this._onEndReachedThreshold}px`;
-    
     // 创建内容插槽
     const defaultSlot = document.createElement('slot');
+    
+    // 创建底部观察元素（宽高为0，跟在内容之后）
+    this._bottomRef = document.createElement('div');
+    this._bottomRef.className = 'bottom-ref';
+    this._bottomRef.style.marginTop = `${-this._onEndReachedThreshold}px`;
     
     // 创建加载中插槽
     const loadingSlot = document.createElement('div');
@@ -227,13 +213,11 @@ class InfiniteScrollList extends HTMLElement {
     
     noDataSlot.appendChild(noDataNamedSlot);
     
-    // 组装组件
-    this._container.appendChild(this._bottomRef);
-    this._container.appendChild(defaultSlot);
-    this._container.appendChild(loadingSlot);
-    this._container.appendChild(noDataSlot);
-    
-    this.shadowRoot.appendChild(this._container);
+    // 组装组件（调整顺序：defaultSlot -> _bottomRef -> loadingSlot -> noDataSlot）
+    this.shadowRoot.appendChild(defaultSlot);
+    this.shadowRoot.appendChild(this._bottomRef);
+    this.shadowRoot.appendChild(loadingSlot);
+    this.shadowRoot.appendChild(noDataSlot);
   }
 }
 
