@@ -69,9 +69,9 @@ class InfiniteScrollList extends HTMLElement {
     if (name === 'on-end-reached-threshold') {
       this._onEndReachedThreshold = Number(newValue) || 0;
       if (this._bottomRef) {
-        // 使用 margin-top 负值来实现距离阈值
+        // 使用 transform 来实现距离阈值，不影响文档流
         // 当滚动到距离底部还有 threshold 像素时，_bottomRef 会进入视口
-        this._bottomRef.style.marginTop = `${-this._onEndReachedThreshold}px`;
+        this._bottomRef.style.transform = `translateY(${-this._onEndReachedThreshold}px)`;
       }
     } else if (name === 'has-next-page') {
       this._hasNextPage = newValue !== null && newValue !== 'false';
@@ -193,7 +193,7 @@ class InfiniteScrollList extends HTMLElement {
     // 创建底部观察元素（宽高为0，跟在内容之后）
     this._bottomRef = document.createElement('div');
     this._bottomRef.className = 'bottom-ref';
-    this._bottomRef.style.marginTop = `${-this._onEndReachedThreshold}px`;
+    this._bottomRef.style.transform = `translateY(${-this._onEndReachedThreshold}px)`;
     
     // 创建加载中插槽
     const loadingSlot = document.createElement('div');
