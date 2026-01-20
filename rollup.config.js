@@ -13,6 +13,10 @@ export default {
   plugins: [
     nodeResolve(),
     typescript(),
-    terser()
+    terser({
+      compress: {
+        drop_console: true,
+      },
+    })
   ]
 };
