@@ -329,6 +329,10 @@ class InfiniteScrollList extends HTMLElement {
     // 检查是否正在刷新中
     if (this._isRefreshing) return;
     
+    // 只响应发生在组件内部的触摸，避免拦截弹窗等外部元素的滚动
+    const touchTarget = e.target as Node;
+    if (!touchTarget || !this.contains(touchTarget)) return;
+    
     // 使用缓存的滚动容器获取滚动位置
     let scrollTop: number;
     
