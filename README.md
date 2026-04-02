@@ -13,6 +13,7 @@
 - 只在有下一页时触发加载事件，避免重复加载
 - 支持下拉刷新功能（移动端专用）
 - 支持自定义下拉刷新样式和动画
+- 未启用下拉刷新时（`enable-refresh` 不为 `true`）刷新区域使用 `display: none`，不占布局
 
 ## 安装
 
@@ -133,7 +134,7 @@ pnpm build
 | --- | --- | --- | --- |
 | on-end-reached-threshold | Number | 0 | 距离底部多少像素时触发加载事件 |
 | has-next-page | Boolean | false | 是否还有下一页数据 |
-| enable-refresh | Boolean | false | 是否启用下拉刷新功能（移动端专用） |
+| enable-refresh | Boolean | false | 是否启用下拉刷新功能（移动端专用）。为 `true` 时才会展示刷新容器并应用下拉高度动画；否则刷新容器为 `display: none` |
 | refresh-threshold | Number | 60 | 下拉多少像素时触发刷新事件 |
 | is-refreshing | Boolean | false | 是否正在刷新中，刷新完成后应设置为 false |
 
@@ -159,7 +160,7 @@ pnpm build
 | default | 默认插槽，用于放置列表内容 |
 | loading | 加载中状态的显示内容（当 `has-next-page="true"` 且滚动到底部时显示） |
 | no-data | 没有更多数据时的显示内容（当 `has-next-page="false"` 时显示） |
-| refresh | 下拉刷新时显示的内容（仅在移动端且 `enable-refresh="true"` 时显示） |
+| refresh | 下拉刷新时显示的内容。仅当 `enable-refresh="true"` 时刷新容器参与布局并可见；未启用时该插槽所在容器为 `display: none`（移动端触摸逻辑亦仅在启用时生效） |
 
 ## 核心优化点说明
 
@@ -169,6 +170,7 @@ pnpm build
 2.  **原子化刷新**：`scrollToTopAndRefresh` 采用并行化设计，滚动与容器展开动画同步进行，视觉反馈更灵敏。
 3.  **智能容器查找**：利用 `ResizeObserver` 实时监听布局变化并缓存滚动容器引用，大幅减少高频事件中的 DOM 遍历开销。
 4.  **事件绑定简化**：采用类字段箭头函数，消除内存泄露隐患并精简样板代码。
+5.  **刷新区域按需展示**：`enable-refresh` 未开启时刷新容器为 `display: none`，避免无下拉刷新场景下的多余布局与渲染。
 
 ## 示例
 

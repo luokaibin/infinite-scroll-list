@@ -40,9 +40,13 @@ const template = `
   }
 
   .refresh-container {
+    display: none;
+  }
+
+  :host([enable-refresh="true"]) .refresh-container {
+    display: flex;
     overflow: hidden;
     height: 0;
-    display: flex;
     align-items: center;
     justify-content: center;
     transition: height 0.3s ease;
