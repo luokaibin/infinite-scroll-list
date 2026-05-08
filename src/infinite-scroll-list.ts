@@ -81,10 +81,13 @@ class InfiniteScrollList extends HTMLElement {
   private _refreshContainer: HTMLDivElement | null = null;
   private _enableRefresh: boolean = false;
   private _refreshThreshold: number = 60;
+  private _refreshFeedbackThreshold: number = 40;
   private _isRefreshing: boolean = false;
   private _startY: number = 0;
   private _isPulling: boolean = false;
   private _isScrollingToTop: boolean = false; // 是否正在滚动到顶部
+  private _pullingRafId: number | null = null;
+  private _pendingPullHeight: number = 0;
 
   constructor() {
     super();
@@ -108,6 +111,7 @@ class InfiniteScrollList extends HTMLElement {
       'has-next-page',
       'enable-refresh',
       'refresh-threshold',
+      'refresh-feedback-threshold',
       'is-refreshing'
     ];
   }
@@ -141,6 +145,8 @@ class InfiniteScrollList extends HTMLElement {
       }
     } else if (name === 'refresh-threshold') {
       this._refreshThreshold = Number(newValue) || 60;
+    } else if (name === 'refresh-feedback-threshold') {
+      this._refreshFeedbackThreshold = Number(newValue) || 40;
     } else if (name === 'is-refreshing') {
       const wasRefreshing = this._isRefreshing;
       this._isRefreshing = newValue !== null && newValue !== 'false';
@@ -319,6 +325,12 @@ class InfiniteScrollList extends HTMLElement {
     target.removeEventListener('touchstart', this._handleTouchStart as EventListener);
     target.removeEventListener('touchmove', this._handleTouchMove as EventListener);
     target.removeEventListener('touchend', this._handleTouchEnd as EventListener);
+
+    // 清理挂起的 rAF，避免在组件销毁后继续更新 UI
+    if (this._pullingRafId !== null) {
+      cancelAnimationFrame(this._pullingRafId);
+      this._pullingRafId = null;
+    }
   }
 
   /**
@@ -370,29 +382,40 @@ class InfiniteScrollList extends HTMLElement {
     const currentY = e.touches[0].pageY;
     const diff = currentY - this._startY;
 
-    if (diff > 0) {
+    // 小于反馈阈值视为轻触误操作，不触发下拉反馈
+    if (diff >= this._refreshFeedbackThreshold) {
       // 阻止浏览器默认下拉刷新
       if (e.cancelable) e.preventDefault();
       
       // 阻尼计算 + 最大距离限制
       const maxPull = this._refreshThreshold * 2; // 最大下拉距离为阈值的2倍
-      const dampingHeight = Math.min(
+      this._pendingPullHeight = Math.min(
         Math.pow(diff, 0.85), 
         maxPull
       );
-      
-      this._refreshContainer.style.height = `${dampingHeight}px`;
-      
-      // 派发 pulling 事件，让外部感知进度（例如旋转图标）
-      this.dispatchEvent(new CustomEvent('refresh-pulling', {
-        bubbles: true,
-        composed: true,
-        detail: { 
-          distance: dampingHeight,
-          threshold: this._refreshThreshold,
-          progress: Math.min(dampingHeight / this._refreshThreshold, 1)
-        }
-      }));
+
+      // 合帧更新：每一帧最多更新一次高度和事件，避免 touchmove 高频触发造成卡顿
+      if (this._pullingRafId === null) {
+        this._pullingRafId = requestAnimationFrame(() => {
+          this._pullingRafId = null;
+
+          if (!this._isPulling || !this._refreshContainer) return;
+
+          const dampingHeight = this._pendingPullHeight;
+          this._refreshContainer.style.height = `${dampingHeight}px`;
+
+          // 派发 pulling 事件，让外部感知进度（例如旋转图标）
+          this.dispatchEvent(new CustomEvent('refresh-pulling', {
+            bubbles: true,
+            composed: true,
+            detail: { 
+              distance: dampingHeight,
+              threshold: this._refreshThreshold,
+              progress: Math.min(dampingHeight / this._refreshThreshold, 1)
+            }
+          }));
+        });
+      }
     }
   };
 
@@ -404,6 +427,13 @@ class InfiniteScrollList extends HTMLElement {
   private _handleTouchEnd = (e: TouchEvent): void => {
     if (!this._isPulling || !this._refreshContainer) return;
     
+    // 如果还有挂起帧，先同步应用最后一次高度，确保最终判断准确
+    if (this._pullingRafId !== null) {
+      cancelAnimationFrame(this._pullingRafId);
+      this._pullingRafId = null;
+      this._refreshContainer.style.height = `${this._pendingPullHeight}px`;
+    }
+
     this._isPulling = false;
     this._refreshContainer.style.transition = 'height 0.3s ease';
 
