@@ -1,0 +1,38 @@
+---
+title: WC Lib 组件库
+description: 基于 Web Component 的通用组件集合
+template: splash
+hero:
+  title: 'WC Lib 组件库'
+  tagline: '基于 Web Component 的通用组件集合 —— 框架无关 · SSR 安全 · npm 与 CDN 双产物'
+  actions:
+    - text: 快速开始
+      link: guides/getting-started/
+      icon: right-arrow
+    - text: 组件文档
+      link: components/infinite-scroll-list/
+      icon: document
+    - text: GitHub
+      link: https://github.com/luokaibin/infinite-scroll-list
+      icon: external
+---
+import { Card, CardGrid } from '@astrojs/starlight/components';
+import { components } from '../../data/components';
+
+## 组件
+
+<CardGrid stagger>
+  {components.map((c) => (
+    <Card title={c.name} href={c.docs['zh-CN']}>
+      {c.desc['zh-CN']}
+    </Card>
+  ))}
+</CardGrid>
+
+## 特性
+
+- **框架无关**：标准 Web Component，Vue、React、原生页面均可直接使用
+- **SSR 安全**：入口在 Next.js 等服务端渲染框架中导入为 no-op
+- **无加载竞态**：npm ESM 产物随业务 bundle 打包；CDN IIFE 产物兜底非工程化页面
+- **防重复注册**：多入口、多版本场景自动守卫并告警，不抛错
+- **持续验证**：契约测试守护分发承诺，组件测试在真实浏览器中验证行为
