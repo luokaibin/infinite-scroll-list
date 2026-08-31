@@ -33,6 +33,9 @@
 │   ├── runtime/               # 共享运行时工具（defineCustomElement 防重复注册守卫，
 │   │                          #   以源码形式内联进各组件产物）
 │   └── test-utils/            # 共享测试工具（CDP 触摸手势序列封装）
+├── website/                   # 文档站（Starlight，中英双语，含共享 Playground）
+│   ├── public/components/     # 构建时由 sync 脚本复制的组件产物
+│   └── src/components/        # WcPlayground 共享在线演示组件
 ├── .github/workflows/         # CI：测试 / npm 发布 / GitHub Pages 部署
 ├── pnpm-workspace.yaml        # workspace 定义
 └── package.json               # 根配置（私有，不发布）
@@ -52,6 +55,9 @@ pnpm dev
 
 # 启动组件示例服务器
 cd packages/infinite-scroll-list && pnpm serve
+
+# 本地文档站（自动同步组件产物，访问 /infinite-scroll-list/ 路径）
+pnpm --filter @wc-lib/website dev
 ```
 
 ## 测试
@@ -90,7 +96,16 @@ pnpm test            # 全部
 3. 根目录执行 `pnpm install` 注册新包
 4. 在上方组件列表中添加条目
 
-组件会被 `pnpm build`（`pnpm -r run build`）自动纳入批量构建，发布时通过 Release 触发 `pnpm -r publish` 自动发布。
+组件会被 `pnpm build`（`pnpm -r run build`）自动纳入批量构建，发布时通过 Release 触发 `pnpm -r publish` 自动发布到 npm。
+
+## 文档站
+
+`website/` 目录为所有组件公共的文档站（Starlight，中英双语）。
+
+- 部署：合入 main 后 GitHub Actions 自动构建并发布到 GitHub Pages
+- 本地开发：`pnpm --filter @wc-lib/website dev`（自动同步组件产物）
+- 在线演示：组件文档页内嵌共享 Playground（编辑代码实时预览，加载的就是当前构建的组件产物）
+- 新组件接入：在 `src/data/components.ts` 注册条目 + 新建组件文档页即可
 
 ## 浏览器兼容性
 
