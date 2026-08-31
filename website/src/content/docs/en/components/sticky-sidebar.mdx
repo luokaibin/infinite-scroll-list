@@ -1,0 +1,175 @@
+---
+title: Sticky Sidebar
+description: Responsive sticky sidebar with breakpoint detection, automatic top offset and rAF-optimized recalculation
+---
+import WcPlayground from '../../../../components/WcPlayground.astro';
+import { Aside, Tabs, TabItem } from '@astrojs/starlight/components';
+
+`<sticky-sidebar>` provides responsive sticky-sidebar behavior: when the viewport reaches the configured breakpoint, sticking is enabled and the component measures the sidebar content height — applying a negative `top` offset when the content is taller than the viewport so it can be fully scrolled into view; below the breakpoint the original styles are restored.
+
+## Live demo
+
+The sidebar content in the templates is taller than the preview viewport — notice the component has already set a negative `top` offset. The second template lets you switch breakpoints dynamically.
+
+export const templates = [
+  {
+    label: 'Basic usage',
+    code: `<style>
+  .layout { display: flex; gap: 20px; }
+  .main { flex: 1; }
+  sticky-sidebar {
+    width: 220px;
+    flex-shrink: 0;
+    position: sticky;
+    top: 0;                 /* the component only manages the top offset; sticking CSS is external */
+    transition: top 0.3s ease-in-out;
+  }
+  .sidebar-inner {
+    background: #eef2ff;
+    border-radius: 8px;
+    padding: 12px;
+    height: 600px;          /* taller than the preview viewport, triggers offset calculation */
+  }
+</style>
+
+<div class="layout">
+  <div class="main">
+    <h3>Main content</h3>
+    <p>Scroll the preview — once the sidebar sticks, its content can still be fully scrolled out of view.</p>
+  </div>
+  <sticky-sidebar min-width="200">
+    <div class="sidebar-inner">
+      <strong>Sticky sidebar</strong>
+      <p>When content is taller than the viewport, the component sets a negative top offset automatically.</p>
+    </div>
+  </sticky-sidebar>
+</div>`,
+  },
+  {
+    label: 'Breakpoint & API',
+    code: `<style>
+  sticky-sidebar {
+    display: block;
+    width: 240px;
+    position: sticky;
+    top: 0;
+    transition: top 0.3s ease-in-out;
+  }
+  .sidebar-inner {
+    background: #eef2ff;
+    border-radius: 8px;
+    padding: 12px;
+    height: 260px;
+  }
+  .bar { margin: 6px 0; }
+  #status { font-size: 12px; color: #666; white-space: pre-line; }
+</style>
+
+<div class="bar">
+  <button id="on">Enable (min-width 200)</button>
+  <button id="off">Disable (min-width 3000)</button>
+</div>
+<pre id="status"></pre>
+
+<sticky-sidebar id="sb" min-width="200">
+  <div class="sidebar-inner">
+    <strong>Sticky sidebar</strong>
+    <p>Use the buttons above to switch breakpoints and observe the behavior.</p>
+  </div>
+</sticky-sidebar>
+
+<script>
+  var sb = document.getElementById('sb');
+  function render() {
+    var s = sb.getBreakpointStatus();
+    document.getElementById('status').textContent =
+      'breakpoint: ' + s.breakpoint +
+      '\nviewport: ' + s.currentWidth +
+      '\nisAboveBreakpoint: ' + s.isAboveBreakpoint +
+      '\nisStickyActive: ' + s.isStickyActive;
+  }
+  document.getElementById('on').addEventListener('click', function () {
+    sb.setBreakpoint(200);
+    render();
+  });
+  document.getElementById('off').addEventListener('click', function () {
+    sb.setBreakpoint(3000);
+    render();
+  });
+  sb.addEventListener('click', render);
+  // the module loads asynchronously — render the status once the element is defined
+  customElements.whenDefined('sticky-sidebar').then(render);
+<\/script>`,
+  },
+];
+
+<WcPlayground component="sticky-sidebar" templates={templates} />
+
+<Aside type="caution">
+  The component only calculates and sets the `top` value — the sticking itself requires external CSS:
+  `position: sticky; top: 0;` (the `top` is dynamically rewritten to a negative offset when content
+  is taller than the viewport).
+</Aside>
+
+## Install
+
+<Tabs>
+  <TabItem label="npm">
+    ```sh
+    pnpm add @wc-lib/sticky-sidebar
+    ```
+  </TabItem>
+  <TabItem label="CDN">
+    ```html
+    <script src="https://unpkg.com/@wc-lib/sticky-sidebar"></script>
+    ```
+  </TabItem>
+</Tabs>
+
+## Usage
+
+```html
+<div style="display: flex; gap: 20px">
+  <div class="main"><!-- main content --></div>
+  <sticky-sidebar min-width="1024">
+    <div class="sidebar"><!-- sidebar content --></div>
+  </sticky-sidebar>
+</div>
+
+<style>
+  sticky-sidebar {
+    position: sticky;
+    top: 0;
+    transition: top 0.3s ease-in-out;
+  }
+</style>
+```
+
+How it works:
+
+1. `matchMedia` watches the viewport against the `min-width` breakpoint
+2. Above the breakpoint it measures the sidebar content height: taller than the viewport sets `top = -(content - viewport)`; shorter restores the original `top`
+3. Below the breakpoint the original styles are restored (sticking disabled)
+4. `ResizeObserver` + debounced `window resize` + `requestAnimationFrame` keep it responsive and fast
+
+## Attributes
+
+| Attribute | Type | Default | Description |
+| --- | --- | --- | --- |
+| `min-width` | Number | `1024` | Minimum viewport width (px) for sticking; values are validated and clamped to `0 ~ 3840` |
+
+## Methods
+
+| Method | Params | Returns | Description |
+| --- | --- | --- | --- |
+| `getBreakpointStatus()` | — | `Status` | Current state: `breakpoint`, `currentWidth`, `isAboveBreakpoint`, `mediaQuery`, `isStickyActive` |
+| `setBreakpoint(breakpoint)` | `string \| number` | `number` | Programmatically set the breakpoint (goes through the `min-width` attribute path; returns the validated value) |
+| `forceRecalculation()` | — | `void` | Force a recalculation of the sticky behavior |
+
+## Notes
+
+- **No Shadow DOM**: the component only provides behavior and ships no internal styles — the sticking CSS (`position: sticky; top: 0;`) is fully provided by the host app
+- A content height of 0 or invalid values never applies an offset; breakpoint values outside `0 ~ 3840` are clamped with a warning
+- Migration note: the source package's debug `console.log` statements were stripped during migration; `warn` / `error` diagnostics are kept
+- SSR-safe: importing the entry is a no-op on the server — see [Loading Timing & SSR](../../guides/ssr-and-timing/)
+- Browser support: all modern browsers (Chrome / Firefox / Safari / Edge)

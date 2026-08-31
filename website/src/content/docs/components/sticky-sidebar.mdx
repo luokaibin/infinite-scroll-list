@@ -1,0 +1,174 @@
+---
+title: 吸顶侧栏组件
+description: 响应式吸顶侧栏：断点检测、内容高度自动计算 top 偏移、rAF 性能优化
+---
+import WcPlayground from '../../../components/WcPlayground.astro';
+import { Aside, Tabs, TabItem } from '@astrojs/starlight/components';
+
+`<sticky-sidebar>` 提供响应式吸顶侧栏能力：当视口宽度达到配置的断点时启用吸顶，并自动检测侧栏内容高度——内容高于视口时计算负向 `top` 偏移，保证滚动到底时侧栏内容完整可见；低于断点时自动还原原始样式。
+
+## 在线演示
+
+模板内的侧栏内容高于预览区视口，注意观察侧栏 `top` 已被组件自动设置为负偏移；第二个模板可动态切换断点。
+
+export const templates = [
+  {
+    label: '基础用法',
+    code: `<style>
+  .layout { display: flex; gap: 20px; }
+  .main { flex: 1; }
+  sticky-sidebar {
+    width: 220px;
+    flex-shrink: 0;
+    position: sticky;
+    top: 0;                 /* 组件只管理 top 的偏移量，吸顶样式需外置 */
+    transition: top 0.3s ease-in-out;
+  }
+  .sidebar-inner {
+    background: #eef2ff;
+    border-radius: 8px;
+    padding: 12px;
+    height: 600px;          /* 高于预览视口，触发负偏移计算 */
+  }
+</style>
+
+<div class="layout">
+  <div class="main">
+    <h3>主内容区</h3>
+    <p>向下滚动预览区，侧栏吸顶后内容仍可完整滚出视野。</p>
+  </div>
+  <sticky-sidebar min-width="200">
+    <div class="sidebar-inner">
+      <strong>吸顶侧栏</strong>
+      <p>内容高于视口时，组件自动设置 top 负偏移。</p>
+    </div>
+  </sticky-sidebar>
+</div>`,
+  },
+  {
+    label: '断点与 API',
+    code: `<style>
+  sticky-sidebar {
+    display: block;
+    width: 240px;
+    position: sticky;
+    top: 0;
+    transition: top 0.3s ease-in-out;
+  }
+  .sidebar-inner {
+    background: #eef2ff;
+    border-radius: 8px;
+    padding: 12px;
+    height: 260px;
+  }
+  .bar { margin: 6px 0; }
+  #status { font-size: 12px; color: #666; white-space: pre-line; }
+</style>
+
+<div class="bar">
+  <button id="on">启用（min-width 200）</button>
+  <button id="off">禁用（min-width 3000）</button>
+</div>
+<pre id="status"></pre>
+
+<sticky-sidebar id="sb" min-width="200">
+  <div class="sidebar-inner">
+    <strong>吸顶侧栏</strong>
+    <p>用上方按钮切换断点，观察组件行为。</p>
+  </div>
+</sticky-sidebar>
+
+<script>
+  var sb = document.getElementById('sb');
+  function render() {
+    var s = sb.getBreakpointStatus();
+    document.getElementById('status').textContent =
+      'breakpoint: ' + s.breakpoint +
+      '\nviewport: ' + s.currentWidth +
+      '\nisAboveBreakpoint: ' + s.isAboveBreakpoint +
+      '\nisStickyActive: ' + s.isStickyActive;
+  }
+  document.getElementById('on').addEventListener('click', function () {
+    sb.setBreakpoint(200);
+    render();
+  });
+  document.getElementById('off').addEventListener('click', function () {
+    sb.setBreakpoint(3000);
+    render();
+  });
+  sb.addEventListener('click', render);
+  // 模块异步加载完成、元素升级后再渲染状态
+  customElements.whenDefined('sticky-sidebar').then(render);
+<\/script>`,
+  },
+];
+
+<WcPlayground component="sticky-sidebar" templates={templates} />
+
+<Aside type="caution">
+  组件只负责计算并设置 `top` 值，吸顶本身需要业务侧提供外置 CSS：
+  `position: sticky; top: 0;`（`top` 会被组件在内容高于视口时动态改写为负偏移）。
+</Aside>
+
+## 安装
+
+<Tabs>
+  <TabItem label="npm">
+    ```sh
+    pnpm add @wc-lib/sticky-sidebar
+    ```
+  </TabItem>
+  <TabItem label="CDN">
+    ```html
+    <script src="https://unpkg.com/@wc-lib/sticky-sidebar"></script>
+    ```
+  </TabItem>
+</Tabs>
+
+## 使用方式
+
+```html
+<div style="display: flex; gap: 20px">
+  <div class="main"><!-- 主内容 --></div>
+  <sticky-sidebar min-width="1024">
+    <div class="sidebar"><!-- 侧栏内容 --></div>
+  </sticky-sidebar>
+</div>
+
+<style>
+  sticky-sidebar {
+    position: sticky;
+    top: 0;
+    transition: top 0.3s ease-in-out;
+  }
+</style>
+```
+
+工作原理：
+
+1. 通过 `matchMedia` 监听视口宽度与 `min-width` 断点的关系
+2. 高于断点时检测侧栏内容高度：高于视口则设置 `top = -(内容高 - 视口高)`，低于视口则还原原始 `top`
+3. 低于断点时还原原始样式（禁用吸顶偏移）
+4. `ResizeObserver` + `window resize`（去抖）+ `requestAnimationFrame` 保证实时响应与性能
+
+## 属性
+
+| 属性名 | 类型 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `min-width` | Number | `1024` | 吸顶行为生效的最小视口宽度（px）；取值会被校验并收敛到 `0 ~ 3840` |
+
+## 方法
+
+| 方法名 | 参数 | 返回值 | 说明 |
+| --- | --- | --- | --- |
+| `getBreakpointStatus()` | 无 | `Status` | 返回当前断点状态：`breakpoint`、`currentWidth`、`isAboveBreakpoint`、`mediaQuery`、`isStickyActive` |
+| `setBreakpoint(breakpoint)` | `string \| number` | `number` | 程序化设置断点（内部走 `min-width` 属性路径，返回校验后的值） |
+| `forceRecalculation()` | 无 | `void` | 强制重新计算吸顶行为 |
+
+## 注意事项
+
+- **无 Shadow DOM**：组件只提供行为，不含任何内部样式——`position: sticky; top: 0;` 等吸顶样式完全由业务侧提供
+- 内容高度为 0 或非法时不会应用偏移；断点值超出 `0 ~ 3840` 范围会被收敛并告警
+- 迁移说明：源包的开发调试日志（`console.log`）已在迁移时剥离，保留 `warn` / `error` 级诊断
+- SSR 安全：入口在服务端渲染框架中导入为 no-op，详见[加载时序与 SSR](../../guides/ssr-and-timing/)
+- 浏览器兼容：所有现代浏览器（Chrome / Firefox / Safari / Edge）
