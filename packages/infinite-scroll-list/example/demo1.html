@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>无限滚动测试页面</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .header {
+            height: 60px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: 600;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            flex-shrink: 0;
+            z-index: 10;
+        }
+
+        .content-area {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            background-color: #f5f5f5;
+            position: relative;
+        }
+
+        .list-item {
+            padding: 20px;
+            background-color: white;
+            border-bottom: 1px solid #eee;
+            margin-bottom: 8px;
+        }
+
+        .list-item:last-child {
+            border-bottom: none;
+        }
+
+        .list-item h3 {
+            margin-bottom: 8px;
+            color: #333;
+            font-size: 18px;
+        }
+
+        .list-item p {
+            color: #666;
+            line-height: 1.6;
+            font-size: 14px;
+        }
+
+        .custom-loading {
+            padding: 20px;
+            text-align: center;
+            color: #667eea;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .custom-loading svg {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .custom-no-data {
+            padding: 20px;
+            text-align: center;
+            color: #999;
+            font-size: 14px;
+        }
+
+        .custom-refresh {
+            padding: 20px;
+            text-align: center;
+            color: #667eea;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .custom-refresh .refresh-icon {
+            transition: transform 0.3s ease;
+        }
+
+        .custom-refresh .refresh-text {
+            font-size: 14px;
+        }
+
+        .bottom-bar {
+            height: 60px;
+            background-color: white;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            flex-shrink: 0;
+            z-index: 10;
+            box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.05);
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+
+        .bottom-bar-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 8px;
+            cursor: pointer;
+            transition: color 0.2s ease;
+            color: #999;
+        }
+
+        .bottom-bar-item.active {
+            color: #667eea;
+        }
+
+        .bottom-bar-item-icon {
+            width: 24px;
+            height: 24px;
+            margin-bottom: 4px;
+        }
+
+        .bottom-bar-item-label {
+            font-size: 12px;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <!-- 固定头部 -->
+    <header class="header">
+        无限滚动测试页面
+    </header>
+
+    <!-- 可滚动内容区 -->
+    <infinite-scroll-list
+        id="scrollView"
+        on-end-reached-threshold="100"
+        has-next-page="true"
+        enable-refresh="true"
+        refresh-threshold="80"
+        is-refreshing="false"
+        class="content-area"
+    >
+        <!-- 下拉刷新插槽 -->
+        <div slot="refresh" class="custom-refresh">
+            <svg class="refresh-icon" width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z" fill="#667eea"/>
+            </svg>
+            <span class="refresh-text">下拉刷新</span>
+        </div>
+
+        <div id="list-container">
+            <!-- 列表内容将通过 JS 动态生成 -->
+        </div>
+
+        <!-- 自定义加载中显示 -->
+        <div slot="loading" class="custom-loading">
+            <svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="12" cy="12" r="10" fill="none" stroke="#667eea" stroke-width="2" stroke-dasharray="30 60" />
+            </svg>
+            <p>正在加载更多数据...</p>
+        </div>
+
+        <!-- 自定义无数据显示 -->
+        <div slot="no-data" class="custom-no-data">
+            <p>已经到底啦，没有更多数据了！</p>
+        </div>
+    </infinite-scroll-list>
+
+    <!-- 底部导航栏 -->
+    <nav class="bottom-bar">
+        <div class="bottom-bar-item active">
+            <svg class="bottom-bar-item-icon" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+            </svg>
+            <span class="bottom-bar-item-label">首页</span>
+        </div>
+        <div class="bottom-bar-item">
+            <svg class="bottom-bar-item-icon" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                <path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/>
+            </svg>
+            <span class="bottom-bar-item-label">分类</span>
+        </div>
+        <div class="bottom-bar-item">
+            <svg class="bottom-bar-item-icon" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
+            </svg>
+            <span class="bottom-bar-item-label">消息</span>
+        </div>
+        <div class="bottom-bar-item">
+            <svg class="bottom-bar-item-icon" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+            </svg>
+            <span class="bottom-bar-item-label">我的</span>
+        </div>
+    </nav>
+
+    <script src="../dist/infinite-scroll-list.min.js"></script>
+    <script>
+        // 模拟数据生成
+        const generateItems = (start, count) => {
+            const items = [];
+            const titles = [
+                '项目标题',
+                '重要通知',
+                '最新动态',
+                '产品更新',
+                '技术分享',
+                '团队协作',
+                '用户反馈',
+                '数据分析',
+                '功能优化',
+                '性能提升'
+            ];
+            const descriptions = [
+                '这是一个关于项目进展的重要更新，包含了最新的开发动态和功能改进。',
+                '本次更新带来了多项新功能和性能优化，提升了用户体验。',
+                '我们持续关注用户反馈，不断改进产品功能和交互体验。',
+                '通过数据分析和用户调研，我们发现了许多可以优化的地方。',
+                '团队正在努力开发新功能，预计下个版本将带来更多惊喜。',
+                '我们重视每一个用户的建议，这些反馈帮助我们不断成长。',
+                '产品迭代是一个持续的过程，我们会保持快速响应用户需求。',
+                '技术团队正在研究新的解决方案，以提升系统的稳定性和性能。',
+                '用户体验始终是我们关注的重点，我们会持续优化产品细节。',
+                '感谢大家的支持，我们会继续努力提供更好的产品和服务。'
+            ];
+            
+            for (let i = start; i < start + count; i++) {
+                items.push({
+                    id: i,
+                    title: `${titles[i % titles.length]} ${i}`,
+                    description: `${descriptions[i % descriptions.length]} 这是第 ${i} 条数据。`
+                });
+            }
+            return items;
+        };
+
+        // 渲染列表项
+        const renderItems = (containerId, items) => {
+            const container = document.getElementById(containerId);
+            
+            items.forEach(item => {
+                const itemElement = document.createElement('div');
+                itemElement.className = 'list-item';
+                itemElement.innerHTML = `
+                    <h3>${item.title}</h3>
+                    <p>${item.description}</p>
+                `;
+                container.appendChild(itemElement);
+            });
+        };
+
+        // 状态管理
+        let currentPage = 1;
+        const itemsPerPage = 10;
+        const totalPages = 5; // 总共5页数据
+        let isLoading = false;
+
+        // 加载初始数据
+        const loadInitialData = () => {
+            const items = generateItems(1, itemsPerPage);
+            document.getElementById('list-container').innerHTML = '';
+            renderItems('list-container', items);
+            currentPage = 1;
+            
+            const scrollView = document.getElementById('scrollView');
+            scrollView.setAttribute('has-next-page', currentPage < totalPages ? 'true' : 'false');
+        };
+
+        // 加载更多数据
+        const loadMoreData = async () => {
+            if (isLoading || currentPage >= totalPages) return;
+            
+            isLoading = true;
+            console.log(`开始加载第 ${currentPage + 1} 页数据...`);
+            
+            // 模拟网络请求延迟
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            
+            currentPage++;
+            const newItems = generateItems((currentPage - 1) * itemsPerPage + 1, itemsPerPage);
+            renderItems('list-container', newItems);
+            
+            const scrollView = document.getElementById('scrollView');
+            scrollView.setAttribute('has-next-page', currentPage < totalPages ? 'true' : 'false');
+            
+            console.log(`第 ${currentPage} 页数据加载完成，还有 ${totalPages - currentPage} 页`);
+            isLoading = false;
+        };
+
+        // 监听滚动到底部事件
+        const scrollView = document.getElementById('scrollView');
+        scrollView.addEventListener('end-reached', async () => {
+            console.log('触发加载更多事件');
+            await loadMoreData();
+        });
+
+        // 监听下拉进度（可选，用于动画效果）
+        scrollView.addEventListener('refresh-pulling', (e) => {
+            const { progress } = e.detail;
+            const icon = scrollView.querySelector('.refresh-icon');
+            if (icon) {
+                icon.style.transform = `rotate(${progress * 360}deg)`;
+            }
+            const text = scrollView.querySelector('.refresh-text');
+            if (text) {
+                if (progress >= 1) {
+                    text.textContent = '释放以刷新';
+                } else {
+                    text.textContent = '下拉刷新';
+                }
+            }
+        });
+
+        // 监听下拉刷新事件
+        scrollView.addEventListener('refresh', async () => {
+            console.log('触发下拉刷新事件');
+            scrollView.setAttribute('is-refreshing', 'true');
+            
+            try {
+                // 模拟刷新数据
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                
+                // 重新加载数据
+                loadInitialData();
+            } finally {
+                scrollView.setAttribute('is-refreshing', 'false');
+            }
+        });
+
+        // 页面加载时初始化数据
+        loadInitialData();
+
+        // 底部导航栏交互
+        const bottomBarItems = document.querySelectorAll('.bottom-bar-item');
+        let lastClickTime = 0;
+        let lastClickedItem = null;
+        
+        bottomBarItems.forEach((item, index) => {
+            item.addEventListener('click', () => {
+                const now = Date.now();
+                const isActive = item.classList.contains('active');
+                const isSameItem = lastClickedItem === item;
+                const isDoubleClick = isSameItem && (now - lastClickTime < 500);
+                
+                // 如果当前是激活状态且是同一个菜单项，则触发回到顶部并刷新
+                if (isActive && isSameItem && !isDoubleClick) {
+                    console.log('激活菜单再次点击，回到顶部并刷新');
+                    scrollView.scrollToTopAndRefresh();
+                } else {
+                    // 切换激活状态
+                    bottomBarItems.forEach(i => i.classList.remove('active'));
+                    item.classList.add('active');
+                    console.log(`切换到: ${item.querySelector('.bottom-bar-item-label').textContent}`);
+                }
+                
+                lastClickTime = now;
+                lastClickedItem = item;
+            });
+        });
+    </script>
+</body>
+</html>
