@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>infinite-scroll-list 测试宿主页</title>
+  <style>
+    body { margin: 0; }
+  </style>
+</head>
+<body>
+<script type="module">
+  import '/packages/infinite-scroll-list/dist/index.esm.js';
+
+  const state = { el: null, container: null, events: [] };
+
+  function record(type, e) {
+    const entry = { type, at: performance.now() };
+    if (type === 'refresh-pulling' && e.detail) {
+      entry.distance = e.detail.distance;
+      entry.threshold = e.detail.threshold;
+      entry.progress = e.detail.progress;
+    }
+    state.events.push(entry);
+  }
+
+  window.__h = {
+    state,
+    get el() { return state.el; },
+    get container() { return state.container; },
+
+    /** 创建 滚动容器 + 组件，并按 attrs 设置属性 */
+    setup(opts = {}) {
+      const container = document.createElement('div');
+      container.id = 'test-container';
+      container.style.height = (opts.containerHeight ?? 400) + 'px';
+      container.style.overflowY = opts.containerOverflow ?? 'auto';
+
+      const el = document.createElement('infinite-scroll-list');
+      for (const [k, v] of Object.entries(opts.attrs ?? {})) {
+        el.setAttribute(k, v);
+      }
+
+      // 内容超出容器，保证可滚动
+      const content = document.createElement('div');
+      content.style.height = (opts.contentHeight ?? 2000) + 'px';
+      content.textContent = 'list-content';
+      el.appendChild(content);
+
+      el.addEventListener('end-reached', (e) => record('end-reached', e));
+      el.addEventListener('refresh', (e) => record('refresh', e));
+      el.addEventListener('refresh-pulling', (e) => record('refresh-pulling', e));
+
+      container.appendChild(el);
+      document.body.appendChild(container);
+      state.container = container;
+      state.el = el;
+    },
+
+    /** 容器改为不可滚动且高度自适应（触发真实 ResizeObserver → 重建滚动容器探测） */
+    expandContainer() {
+      const c = state.container;
+      c.style.overflowY = 'visible';
+      c.style.height = 'auto';
+    },
+
+    setScrollTop(v) {
+      state.container.scrollTop = v;
+    },
+
+    count(type) {
+      return state.events.filter((e) => e.type === type).length;
+    },
+
+    /** 刷新容器当前高度（px 数值） */
+    refreshHeight() {
+      const t = state.el.shadowRoot.querySelector('.refresh-container');
+      return parseFloat(t.style.height) || 0;
+    },
+
+    /** 刷新容器当前 computed display */
+    refreshDisplay() {
+      const t = state.el.shadowRoot.querySelector('.refresh-container');
+      return getComputedStyle(t).display;
+    },
+  };
+</script>
+</body>
+</html>
