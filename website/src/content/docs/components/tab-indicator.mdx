@@ -1,0 +1,234 @@
+---
+title: Tab 指示器组件
+description: Tab 导航动态指示器：下划线 / 胶囊双效果、平滑动画、吸顶滚动与智能横向滚动
+---
+import WcPlayground from '../../../components/WcPlayground.astro';
+import { Aside, Tabs, TabItem } from '@astrojs/starlight/components';
+
+`<tab-indicator>` 为 Tab 导航提供动态的、带动画效果的指示器：支持「下划线」与「胶囊」两种效果，自动监听 Tab 项的激活状态、尺寸变化与动态增删，平滑移动指示器到当前激活的 Tab 上。可选的吸顶滚动与智能横向滚动能力覆盖复杂布局场景。
+
+## 在线演示
+
+左下编辑器可直接修改代码，右侧实时预览（点击 Tab 切换激活项）。
+
+export const templates = [
+  {
+    label: '下划线（默认）',
+    code: `<style>
+  .tabs {
+    display: flex;
+    gap: 24px;
+    border-bottom: 1px solid #e5e7eb;
+  }
+  .tabs [role="tab-item"] {
+    padding: 8px 16px;
+    cursor: pointer;
+    border: none;
+    background: none;
+    font-size: 14px;
+    color: #999;
+  }
+  .tabs [role="tab-item"][data-actived="true"] {
+    color: #1f2328;
+    font-weight: 600;
+  }
+</style>
+
+<tab-indicator class="tabs" style="--underline-color: #4b6bfb; --underline-height: 3px">
+  <button role="tab-item" data-actived="true">首页</button>
+  <button role="tab-item">产品</button>
+  <button role="tab-item">关于我们</button>
+  <button role="tab-item">联系方式</button>
+</tab-indicator>
+
+<script>
+  var el = document.querySelector('tab-indicator');
+  el.addEventListener('click', function (e) {
+    if (!e.target.matches('[role="tab-item"]')) return;
+    el.querySelectorAll('[role="tab-item"]').forEach(function (t) {
+      t.setAttribute('data-actived', 'false');
+    });
+    e.target.setAttribute('data-actived', 'true');
+  });
+<\/script>`,
+  },
+  {
+    label: '胶囊效果',
+    code: `<style>
+  .tabs {
+    display: inline-flex;
+    gap: 8px;
+    padding: 4px;
+    background: #f3f4f6;
+    border-radius: 12px;
+  }
+  .tabs [role="tab-item"] {
+    padding: 6px 18px;
+    cursor: pointer;
+    border: none;
+    background: none;
+    font-size: 14px;
+    color: #666;
+  }
+  .tabs [role="tab-item"][data-actived="true"] {
+    color: #1f2328;
+    font-weight: 600;
+  }
+</style>
+
+<tab-indicator
+  class="tabs"
+  effect="capsule"
+  style="--capsule-bg-color: #ffffff; --capsule-border-radius: 10px; --animation-duration: 0.25s"
+>
+  <button role="tab-item" data-actived="true">日</button>
+  <button role="tab-item">周</button>
+  <button role="tab-item">月</button>
+  <button role="tab-item">年</button>
+</tab-indicator>
+
+<script>
+  var el = document.querySelector('tab-indicator');
+  el.addEventListener('click', function (e) {
+    if (!e.target.matches('[role="tab-item"]')) return;
+    el.querySelectorAll('[role="tab-item"]').forEach(function (t) {
+      t.setAttribute('data-actived', 'false');
+    });
+    e.target.setAttribute('data-actived', 'true');
+  });
+<\/script>`,
+  },
+  {
+    label: '智能横向滚动',
+    code: `<style>
+  .tabs {
+    display: flex;
+    gap: 20px;
+    border-bottom: 1px solid #e5e7eb;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tabs [role="tab-item"] {
+    padding: 8px 14px;
+    cursor: pointer;
+    border: none;
+    background: none;
+    font-size: 14px;
+    color: #999;
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+  .tabs [role="tab-item"][data-actived="true"] {
+    color: #1f2328;
+    font-weight: 600;
+  }
+</style>
+
+<tab-indicator class="tabs" smart-horizontal-scroll>
+  <button role="tab-item" data-actived="true">推荐</button>
+  <button role="tab-item">热榜</button>
+  <button role="tab-item">关注</button>
+  <button role="tab-item">视频</button>
+  <button role="tab-item">直播</button>
+  <button role="tab-item">科技</button>
+  <button role="tab-item">财经</button>
+  <button role="tab-item">体育</button>
+  <button role="tab-item">娱乐</button>
+  <button role="tab-item">汽车</button>
+</tab-indicator>
+
+<script>
+  var el = document.querySelector('tab-indicator');
+  el.addEventListener('click', function (e) {
+    if (!e.target.matches('[role="tab-item"]')) return;
+    el.querySelectorAll('[role="tab-item"]').forEach(function (t) {
+      t.setAttribute('data-actived', 'false');
+    });
+    e.target.setAttribute('data-actived', 'true');
+  });
+<\/script>`,
+  },
+];
+
+<WcPlayground component="tab-indicator" templates={templates} />
+
+<Aside type="tip">
+  第三个模板启用了 `smart-horizontal-scroll`：Tab 数量超出容器宽度时，切换激活项会平滑滚动 tab 条自身，
+  首帧/布局抖动使用瞬时定位（`auto`），用户主动切换才使用平滑滚动（`smooth`）。
+</Aside>
+
+## 安装
+
+<Tabs>
+  <TabItem label="npm">
+    ```sh
+    pnpm add @wc-lib/tab-indicator
+    ```
+  </TabItem>
+  <TabItem label="CDN">
+    ```html
+    <script src="https://unpkg.com/@wc-lib/tab-indicator"></script>
+    ```
+  </TabItem>
+</Tabs>
+
+## 使用协议
+
+Tab 项可以是任意元素（`button` / `div` / `p` 等），放在组件内部并通过两个约定驱动：
+
+- `role="tab-item"`：标记一个 Tab 项（支持任意深层嵌套）
+- `data-actived="true"`：标记当前激活项（组件通过 MutationObserver 监听该属性变化）
+
+激活态的切换由业务侧控制（通常是点击事件里 `setAttribute`），组件自动完成指示器定位与动画。
+
+## 属性
+
+| 属性名 | 类型 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `effect` | String | `underline` | 指示器效果：`underline`（下划线）或 `capsule`（胶囊背景） |
+| `enable-sticky-scroll` | Boolean | `false` | 启用粘性滚动支持（需配合 CSS `position: sticky`），见下文 |
+| `smart-horizontal-scroll` | Boolean | `false` | 智能横向滚动：首帧/布局抖动瞬时定位，用户切换才平滑滚动 |
+
+## 方法
+
+| 方法名 | 参数 | 说明 |
+| --- | --- | --- |
+| `setScrollTarget(element)` | `HTMLElement` | 手动设置吸顶滚动时的目标元素；默认使用组件的下一个兄弟元素 |
+
+## CSS 自定义属性
+
+| 变量名 | 默认值 | 说明 |
+| --- | --- | --- |
+| `--animation-duration` | `0.3s` | 指示器动画时长 |
+| `--underline-color` | `#007bff` | 下划线颜色 |
+| `--underline-height` | `2px` | 下划线高度 |
+| `--underline-bottom` | `0` | 下划线距底部偏移 |
+| `--capsule-bg-color` | `rgba(0, 123, 255, 0.1)` | 胶囊背景色 |
+| `--capsule-border-radius` | `999px` | 胶囊圆角半径 |
+
+## 吸顶滚动（enable-sticky-scroll）
+
+当组件 CSS `position` 为 `sticky` 时，启用该属性可防止滚动内容被吸顶的 Tab 条遮挡：
+
+1. 组件通过 `IntersectionObserver` 监测自身是否处于吸顶状态
+2. 自动查找最近的可滚动父容器，并在切换 Tab 时临时设置 `scroll-padding-top`（top + 组件高度）
+3. 每个激活 Tab 的滚动位置会被缓存，切回时恢复；滚动完成后立即还原原始 `scroll-padding-top`
+
+```css
+tab-indicator {
+  position: sticky;
+  top: 0;
+  background: white; /* 建议设置背景色避免内容穿透 */
+}
+```
+
+```html
+<tab-indicator enable-sticky-scroll><!-- tabs --></tab-indicator>
+```
+
+## 注意事项
+
+- 组件通过 Shadow DOM 封装内部样式；Tab 项本身的样式完全由业务侧控制
+- SSR 安全：入口在服务端渲染框架中导入为 no-op，加载时序说明见[加载时序与 SSR](../../guides/ssr-and-timing/)
+- 浏览器兼容：所有现代浏览器（Chrome / Firefox / Safari / Edge）

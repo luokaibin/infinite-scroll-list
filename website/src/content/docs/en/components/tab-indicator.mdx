@@ -1,0 +1,235 @@
+---
+title: Tab Indicator
+description: Animated tab indicator with underline / capsule effects, sticky-scroll support and smart horizontal scrolling
+---
+import WcPlayground from '../../../../components/WcPlayground.astro';
+import { Aside, Tabs, TabItem } from '@astrojs/starlight/components';
+
+`<tab-indicator>` provides an animated indicator for tab navigation: two effects (underline and capsule), automatic tracking of tab activation, size changes and dynamic add/remove, with smooth transitions. Optional sticky-scroll and smart horizontal scrolling cover complex layouts.
+
+## Live demo
+
+Edit the code on the left — the preview updates automatically (click the tabs to switch).
+
+export const templates = [
+  {
+    label: 'Underline (default)',
+    code: `<style>
+  .tabs {
+    display: flex;
+    gap: 24px;
+    border-bottom: 1px solid #e5e7eb;
+  }
+  .tabs [role="tab-item"] {
+    padding: 8px 16px;
+    cursor: pointer;
+    border: none;
+    background: none;
+    font-size: 14px;
+    color: #999;
+  }
+  .tabs [role="tab-item"][data-actived="true"] {
+    color: #1f2328;
+    font-weight: 600;
+  }
+</style>
+
+<tab-indicator class="tabs" style="--underline-color: #4b6bfb; --underline-height: 3px">
+  <button role="tab-item" data-actived="true">Home</button>
+  <button role="tab-item">Products</button>
+  <button role="tab-item">About</button>
+  <button role="tab-item">Contact</button>
+</tab-indicator>
+
+<script>
+  var el = document.querySelector('tab-indicator');
+  el.addEventListener('click', function (e) {
+    if (!e.target.matches('[role="tab-item"]')) return;
+    el.querySelectorAll('[role="tab-item"]').forEach(function (t) {
+      t.setAttribute('data-actived', 'false');
+    });
+    e.target.setAttribute('data-actived', 'true');
+  });
+<\/script>`,
+  },
+  {
+    label: 'Capsule',
+    code: `<style>
+  .tabs {
+    display: inline-flex;
+    gap: 8px;
+    padding: 4px;
+    background: #f3f4f6;
+    border-radius: 12px;
+  }
+  .tabs [role="tab-item"] {
+    padding: 6px 18px;
+    cursor: pointer;
+    border: none;
+    background: none;
+    font-size: 14px;
+    color: #666;
+  }
+  .tabs [role="tab-item"][data-actived="true"] {
+    color: #1f2328;
+    font-weight: 600;
+  }
+</style>
+
+<tab-indicator
+  class="tabs"
+  effect="capsule"
+  style="--capsule-bg-color: #ffffff; --capsule-border-radius: 10px; --animation-duration: 0.25s"
+>
+  <button role="tab-item" data-actived="true">Day</button>
+  <button role="tab-item">Week</button>
+  <button role="tab-item">Month</button>
+  <button role="tab-item">Year</button>
+</tab-indicator>
+
+<script>
+  var el = document.querySelector('tab-indicator');
+  el.addEventListener('click', function (e) {
+    if (!e.target.matches('[role="tab-item"]')) return;
+    el.querySelectorAll('[role="tab-item"]').forEach(function (t) {
+      t.setAttribute('data-actived', 'false');
+    });
+    e.target.setAttribute('data-actived', 'true');
+  });
+<\/script>`,
+  },
+  {
+    label: 'Smart horizontal scroll',
+    code: `<style>
+  .tabs {
+    display: flex;
+    gap: 20px;
+    border-bottom: 1px solid #e5e7eb;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tabs [role="tab-item"] {
+    padding: 8px 14px;
+    cursor: pointer;
+    border: none;
+    background: none;
+    font-size: 14px;
+    color: #999;
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+  .tabs [role="tab-item"][data-actived="true"] {
+    color: #1f2328;
+    font-weight: 600;
+  }
+</style>
+
+<tab-indicator class="tabs" smart-horizontal-scroll>
+  <button role="tab-item" data-actived="true">For You</button>
+  <button role="tab-item">Trending</button>
+  <button role="tab-item">Following</button>
+  <button role="tab-item">Videos</button>
+  <button role="tab-item">Live</button>
+  <button role="tab-item">Tech</button>
+  <button role="tab-item">Finance</button>
+  <button role="tab-item">Sports</button>
+  <button role="tab-item">News</button>
+  <button role="tab-item">Auto</button>
+</tab-indicator>
+
+<script>
+  var el = document.querySelector('tab-indicator');
+  el.addEventListener('click', function (e) {
+    if (!e.target.matches('[role="tab-item"]')) return;
+    el.querySelectorAll('[role="tab-item"]').forEach(function (t) {
+      t.setAttribute('data-actived', 'false');
+    });
+    e.target.setAttribute('data-actived', 'true');
+  });
+<\/script>`,
+  },
+];
+
+<WcPlayground component="tab-indicator" templates={templates} />
+
+<Aside type="tip">
+  The third template enables `smart-horizontal-scroll`: when tabs overflow the container,
+  switching scrolls the tab strip itself — instant positioning (`auto`) for the first frame
+  and layout shifts, smooth scrolling (`smooth`) only for user-initiated switches.
+</Aside>
+
+## Install
+
+<Tabs>
+  <TabItem label="npm">
+    ```sh
+    pnpm add @wc-lib/tab-indicator
+    ```
+  </TabItem>
+  <TabItem label="CDN">
+    ```html
+    <script src="https://unpkg.com/@wc-lib/tab-indicator"></script>
+    ```
+  </TabItem>
+</Tabs>
+
+## Usage protocol
+
+Tab items can be any element (`button` / `div` / `p`, …) placed inside the component, driven by two conventions:
+
+- `role="tab-item"`: marks a tab item (nesting at any depth is supported)
+- `data-actived="true"`: marks the active item (watched via MutationObserver)
+
+Activation is controlled by the host app (usually `setAttribute` in a click handler); the component handles indicator positioning and animation automatically.
+
+## Attributes
+
+| Attribute | Type | Default | Description |
+| --- | --- | --- | --- |
+| `effect` | String | `underline` | Indicator effect: `underline` or `capsule` |
+| `enable-sticky-scroll` | Boolean | `false` | Enable sticky-scroll support (requires CSS `position: sticky`), see below |
+| `smart-horizontal-scroll` | Boolean | `false` | Smart horizontal scrolling: instant positioning on first frame / layout shifts, smooth only on user switches |
+
+## Methods
+
+| Method | Params | Description |
+| --- | --- | --- |
+| `setScrollTarget(element)` | `HTMLElement` | Manually set the scroll target for sticky scroll; defaults to the component's next sibling element |
+
+## CSS custom properties
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `--animation-duration` | `0.3s` | Indicator animation duration |
+| `--underline-color` | `#007bff` | Underline color |
+| `--underline-height` | `2px` | Underline height |
+| `--underline-bottom` | `0` | Underline offset from the bottom |
+| `--capsule-bg-color` | `rgba(0, 123, 255, 0.1)` | Capsule background color |
+| `--capsule-border-radius` | `999px` | Capsule border radius |
+
+## Sticky scroll (enable-sticky-scroll)
+
+When the component's CSS `position` is `sticky`, enabling this attribute prevents scrolled content from being covered by the stuck tab strip:
+
+1. An `IntersectionObserver` monitors whether the component is stuck
+2. The nearest scrollable ancestor is located automatically, and `scroll-padding-top` (top + component height) is set temporarily while switching tabs
+3. Scroll positions are cached per active tab and restored when switching back; the original `scroll-padding-top` is restored right after scrolling
+
+```css
+tab-indicator {
+  position: sticky;
+  top: 0;
+  background: white; /* recommended to avoid see-through */
+}
+```
+
+```html
+<tab-indicator enable-sticky-scroll><!-- tabs --></tab-indicator>
+```
+
+## Notes
+
+- Internal styles are encapsulated in Shadow DOM; the tab items themselves are fully styled by the host app
+- SSR-safe: importing the entry is a no-op on the server — see [Loading Timing & SSR](../../guides/ssr-and-timing/)
+- Browser support: all modern browsers (Chrome / Firefox / Safari / Edge)
