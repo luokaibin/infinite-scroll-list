@@ -84,9 +84,9 @@ export const templates = [
     var s = sb.getBreakpointStatus();
     document.getElementById('status').textContent =
       'breakpoint: ' + s.breakpoint +
-      '\nviewport: ' + s.currentWidth +
-      '\nisAboveBreakpoint: ' + s.isAboveBreakpoint +
-      '\nisStickyActive: ' + s.isStickyActive;
+      '\\nviewport: ' + s.currentWidth +
+      '\\nisAboveBreakpoint: ' + s.isAboveBreakpoint +
+      '\\nisStickyActive: ' + s.isStickyActive;
   }
   document.getElementById('on').addEventListener('click', function () {
     sb.setBreakpoint(200);
