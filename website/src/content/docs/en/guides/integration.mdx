@@ -1,0 +1,47 @@
+---
+title: Integration
+description: npm ESM as the primary channel and CDN IIFE as the fallback
+---
+import { Aside } from '@astrojs/starlight/components';
+
+Components ship with a dual-build strategy: **npm ESM as the primary channel, CDN IIFE as the fallback**.
+
+## npm + ESM (bundler projects, primary)
+
+```ts
+import '@wc-lib/infinite-scroll-list';
+```
+
+The component ships inside your bundle and executes in the same sequence as your app code, so **there is no script-loading race**:
+
+- SSR-safe entry: import it from any file — it is a no-op inside SSR frameworks
+- Multiple imports are safe: ESM modules evaluate once, so registration happens exactly once
+- Lazy-load with `await import('@wc-lib/infinite-scroll-list')`; registration completes when the promise resolves
+- TypeScript types included, tree-shake-friendly ESM output
+
+<Aside type="caution">
+  The package declares `sideEffects: true` — importing it registers the custom element,
+  so bundlers will not tree-shake it away. Do not remove this field.
+</Aside>
+
+## CDN + script (plain pages, fallback)
+
+```html
+<script src="https://unpkg.com/@wc-lib/infinite-scroll-list"></script>
+```
+
+The IIFE build registers the element on load. This channel has a loading race with your app code — wait for registration before calling imperative methods:
+
+```js
+customElements.whenDefined('infinite-scroll-list').then(() => {
+  // safe to call scrollToTop and other methods now
+});
+```
+
+Declarative usage (attributes + event listeners) is race-free by design and needs no waiting.
+
+## Version discipline
+
+- **Never mix** npm and CDN sources on the same page
+- Keep a single version in your dependency tree; use pnpm `overrides` to pin it
+- Duplicate registration is detected and skipped with a console warning instead of throwing

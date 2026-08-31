@@ -1,0 +1,64 @@
+---
+title: Getting Started
+description: Install and use the infinite-scroll-list component
+---
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+## Install
+
+<Tabs>
+  <TabItem label="npm (bundler projects, recommended)">
+    ```sh
+    pnpm add @wc-lib/infinite-scroll-list
+    ```
+  </TabItem>
+  <TabItem label="CDN (plain pages)">
+    ```html
+    <script src="https://unpkg.com/@wc-lib/infinite-scroll-list"></script>
+    ```
+  </TabItem>
+</Tabs>
+
+## Register
+
+With npm, import it once in your application entry:
+
+```ts
+// main.ts
+import '@wc-lib/infinite-scroll-list';
+```
+
+With CDN, loading the script registers the component — nothing else needed.
+
+## Use
+
+```html
+<infinite-scroll-list
+  id="scrollView"
+  has-next-page="true"
+  on-end-reached-threshold="100"
+>
+  <div id="list">
+    <!-- list items -->
+  </div>
+
+  <div slot="loading">Loading more...</div>
+  <div slot="no-data">No more data</div>
+</infinite-scroll-list>
+
+<script>
+  const scrollView = document.getElementById('scrollView');
+  scrollView.addEventListener('end-reached', async () => {
+    const more = await fetchMoreData();
+    renderList(more);
+    if (!hasMore) {
+      scrollView.setAttribute('has-next-page', 'false');
+    }
+  });
+</script>
+```
+
+## Next steps
+
+- Try the interactive demos in the [component docs](../../components/infinite-scroll-list/)
+- Bundler integration details: [Integration](./integration/) and [Loading Timing & SSR](./ssr-and-timing/)

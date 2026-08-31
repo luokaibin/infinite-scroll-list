@@ -1,0 +1,38 @@
+---
+title: WC Lib
+description: A collection of framework-agnostic Web Components
+template: splash
+hero:
+  title: 'WC Lib'
+  tagline: 'A collection of framework-agnostic Web Components — works everywhere · SSR-safe · dual npm & CDN builds'
+  actions:
+    - text: Get Started
+      link: guides/getting-started/
+      icon: right-arrow
+    - text: Component Docs
+      link: components/infinite-scroll-list/
+      icon: document
+    - text: GitHub
+      link: https://github.com/luokaibin/infinite-scroll-list
+      icon: external
+---
+import { Card, CardGrid } from '@astrojs/starlight/components';
+import { components } from '../../../data/components';
+
+## Components
+
+<CardGrid stagger>
+  {components.map((c) => (
+    <Card title={c.name} href={c.docs.en}>
+      {c.desc.en}
+    </Card>
+  ))}
+</CardGrid>
+
+## Highlights
+
+- **Framework-agnostic**: standard Web Components — drop them into Vue, React or plain HTML
+- **SSR-safe**: importing the entry is a no-op on the server (Next.js and friends)
+- **No loading race**: the npm ESM build ships inside your bundle; a CDN IIFE build covers legacy pages
+- **Duplicate-registration guard**: multi-entry / multi-version scenarios are guarded with a warning, never a crash
+- **Continuously verified**: contract tests guard the distribution promise, component tests run in a real browser
