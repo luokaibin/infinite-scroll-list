@@ -1,0 +1,222 @@
+---
+title: Infinite Scroll List
+description: An infinite scroll loading Web Component with pull-to-refresh and custom slots
+---
+import WcPlayground from '../../../../components/WcPlayground.astro';
+import { Aside, Tabs, TabItem } from '@astrojs/starlight/components';
+
+`<infinite-scroll-list>` loads more content when users scroll near the bottom, supports mobile pull-to-refresh, and lets you customize the loading / no-data / refresh states through slots.
+
+## Live demo
+
+Edit the code on the left — the preview updates automatically.
+
+export const templates = [
+  {
+    label: 'Basic',
+    code: `<infinite-scroll-list
+  id="demo"
+  has-next-page="true"
+  on-end-reached-threshold="60"
+  style="height: 70vh; border: 1px solid #e5e7eb"
+>
+  <div id="list"></div>
+  <div slot="loading" style="padding: 12px; text-align: center; color: #666">
+    Loading more...
+  </div>
+  <div slot="no-data" style="padding: 12px; text-align: center; color: #999">
+    No more data
+  </div>
+</infinite-scroll-list>
+
+<script>
+  var page = 1;
+  var totalPages = 3;
+  var list = document.getElementById('list');
+  var el = document.getElementById('demo');
+
+  function appendItems(n) {
+    for (var i = 0; i < n; i++) {
+      var item = document.createElement('div');
+      item.style.cssText = 'padding:12px;border-bottom:1px solid #eee';
+      item.textContent = 'Item #' + (list.children.length + 1);
+      list.appendChild(item);
+    }
+  }
+
+  appendItems(30);
+  el.addEventListener('end-reached', function () {
+    if (page >= totalPages) return;
+    setTimeout(function () {
+      page++;
+      appendItems(15);
+      el.setAttribute('has-next-page', page < totalPages ? 'true' : 'false');
+    }, 600);
+  });
+<\/script>`,
+  },
+  {
+    label: 'Pull to refresh',
+    code: `<infinite-scroll-list
+  id="demo"
+  has-next-page="true"
+  enable-refresh="true"
+  refresh-threshold="60"
+  style="height: 70vh; border: 1px solid #e5e7eb"
+>
+  <div slot="refresh" style="padding: 8px; text-align: center; color: #4b6bfb">
+    <span id="refresh-text">Pull to refresh</span>
+  </div>
+  <div id="list"></div>
+  <div slot="no-data" style="padding: 12px; text-align: center; color: #999">
+    No more data
+  </div>
+</infinite-scroll-list>
+
+<script>
+  var el = document.getElementById('demo');
+  var text = document.getElementById('refresh-text');
+  var list = document.getElementById('list');
+  for (var i = 0; i < 30; i++) {
+    var item = document.createElement('div');
+    item.style.cssText = 'padding:12px;border-bottom:1px solid #eee';
+    item.textContent = 'Item #' + (i + 1);
+    list.appendChild(item);
+  }
+
+  el.addEventListener('refresh-pulling', function (e) {
+    text.textContent = e.detail.progress >= 1 ? 'Release to refresh' : 'Pull to refresh';
+  });
+
+  el.addEventListener('refresh', function () {
+    el.setAttribute('is-refreshing', 'true');
+    text.textContent = 'Refreshing...';
+    setTimeout(function () {
+      el.setAttribute('is-refreshing', 'false');
+      text.textContent = 'Pull to refresh';
+    }, 1000);
+  });
+
+  // Desktop helper: converts mouse drags into touch events (not needed on touch devices)
+  var fire = function (type, y) {
+    var touch = new Touch({ identifier: 1, target: el, clientX: 150, clientY: y, pageX: 150, pageY: y });
+    el.dispatchEvent(new TouchEvent(type, {
+      bubbles: true,
+      cancelable: true,
+      touches: type === 'touchend' ? [] : [touch],
+      changedTouches: [touch],
+    }));
+  };
+  var dragging = false;
+  el.addEventListener('mousedown', function (e) {
+    dragging = true;
+    fire('touchstart', e.pageY);
+  });
+  window.addEventListener('mousemove', function (e) {
+    if (dragging) fire('touchmove', e.pageY);
+  });
+  window.addEventListener('mouseup', function (e) {
+    if (!dragging) return;
+    dragging = false;
+    fire('touchmove', e.pageY);
+    fire('touchend', e.pageY);
+  });
+<\/script>`,
+  },
+  {
+    label: 'Programmatic refresh',
+    code: `<infinite-scroll-list
+  id="demo"
+  has-next-page="true"
+  enable-refresh="true"
+  refresh-threshold="60"
+  style="height: 70vh; border: 1px solid #e5e7eb"
+>
+  <div slot="refresh" style="padding: 8px; text-align: center; color: #4b6bfb">Refreshing</div>
+  <div id="list"></div>
+</infinite-scroll-list>
+
+<button id="btn" style="margin-top: 8px">Back to top & refresh</button>
+
+<script>
+  var el = document.getElementById('demo');
+  var list = document.getElementById('list');
+  for (var i = 0; i < 40; i++) {
+    var item = document.createElement('div');
+    item.style.cssText = 'padding:12px;border-bottom:1px solid #eee';
+    item.textContent = 'Item #' + (i + 1);
+    list.appendChild(item);
+  }
+  el.addEventListener('refresh', function () {
+    setTimeout(function () {
+      el.setAttribute('is-refreshing', 'false');
+    }, 800);
+  });
+  document.getElementById('btn').addEventListener('click', function () {
+    el.scrollToTopAndRefresh();
+  });
+<\/script>`,
+  },
+];
+
+<WcPlayground component="infinite-scroll-list" templates={templates} />
+
+<Aside type="tip">
+  Pull-to-refresh is a touch gesture. The second template includes a mouse-to-touch adapter, so you can drag the list with your mouse on desktop.
+</Aside>
+
+## Install
+
+<Tabs>
+  <TabItem label="npm">
+    ```sh
+    pnpm add @wc-lib/infinite-scroll-list
+    ```
+  </TabItem>
+  <TabItem label="CDN">
+    ```html
+    <script src="https://unpkg.com/@wc-lib/infinite-scroll-list"></script>
+    ```
+  </TabItem>
+</Tabs>
+
+For usage details and loading timing, see [Getting Started](../../guides/getting-started/) and [Loading Timing & SSR](../../guides/ssr-and-timing/).
+
+## Attributes
+
+| Attribute | Type | Default | Description |
+| --- | --- | --- | --- |
+| `on-end-reached-threshold` | Number | `0` | Pixels above the bottom that trigger the load event |
+| `has-next-page` | Boolean | `false` | Whether more pages exist; the bottom event only fires when `true` |
+| `enable-refresh` | Boolean | `false` | Enable pull-to-refresh (touch devices only); the refresh area joins the layout when `true` |
+| `refresh-threshold` | Number | `60` | Pull distance in pixels that triggers the refresh event |
+| `refresh-feedback-threshold` | Number | `40` | Minimum pull distance before visual feedback starts |
+| `is-refreshing` | Boolean | `false` | Whether a refresh is in progress; set back to `false` when done |
+
+## Events
+
+| Event | Description |
+| --- | --- |
+| `end-reached` | Fired when scrolled to the bottom, only while `has-next-page` is `true` |
+| `refresh` | Fired when the pull passes the threshold |
+| `refresh-pulling` | Fired continuously while pulling; `detail` contains `distance`, `threshold`, `progress` (0~1) |
+
+## Methods
+
+| Method | Returns | Description |
+| --- | --- | --- |
+| `scrollToTop()` | `Promise<void>` | Smooth-scrolls to the top and waits for the scroll to finish |
+| `scrollToTopAndRefresh()` | `Promise<void>` | Atomic refresh: scrolls to top while expanding the refresh header and fires `refresh` |
+
+## Slots
+
+| Slot | Description |
+| --- | --- |
+| default | List content |
+| `loading` | Shown while loading the next page (`has-next-page="true"` and scrolled to bottom) |
+| `no-data` | Shown when there is no more data (`has-next-page="false"`) |
+| `refresh` | Refresh header content, only participates in layout when `enable-refresh="true"` |
+
+## Browser support
+
+All modern browsers (Chrome / Firefox / Safari / Edge). Pull-to-refresh relies on touch events and only works on touch devices (or environments with touch emulation).
