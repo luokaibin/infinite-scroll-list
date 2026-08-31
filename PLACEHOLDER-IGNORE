@@ -1,0 +1,8 @@
+npm 方式在应用入口导入一次即可完成注册：
+
+```ts
+// main.ts
+import '@wc-lib/infinite-scroll-list';
+```
+
+CDN 方式加载脚本即完成注册，无需额外代码。
