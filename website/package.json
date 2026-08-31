@@ -1,0 +1,20 @@
+{
+  "name": "@wc-lib/website",
+  "private": true,
+  "version": "0.0.0",
+  "description": "WC Lib 组件库文档站（Starlight，中英双语）",
+  "type": "module",
+  "scripts": {
+    "sync": "node scripts/sync-components.mjs",
+    "dev": "npm run sync && astro dev",
+    "build": "npm run sync && astro build",
+    "preview": "npm run sync && astro preview"
+  },
+  "dependencies": {
+    "@astrojs/starlight": "^0.37.7",
+    "@codemirror/lang-html": "^6.4.0",
+    "@codemirror/theme-one-dark": "^6.1.0",
+    "astro": "^5.18.2",
+    "codemirror": "^6.0.2"
+  }
+}

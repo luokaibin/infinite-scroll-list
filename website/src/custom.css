@@ -1,0 +1,8 @@
+/* 文档站全局微调：加宽内容列，代码块圆角 */
+:root {
+  --sl-content-width: 50rem;
+}
+
+main .sl-markdown-content pre {
+  border-radius: 0.5rem;
+}
