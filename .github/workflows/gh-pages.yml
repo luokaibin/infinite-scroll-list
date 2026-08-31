@@ -20,26 +20,43 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
-      
-      # 准备部署文件，只包含 example/index.html 和 dist 目录
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24.x'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Build component
+        run: pnpm --filter @wc-lib/infinite-scroll-list run build
+
+      # 准备部署文件，只包含示例页和 dist 目录
       - name: Prepare deployment files
         run: |
           mkdir -p deploy
-          cp example/index.html deploy/
-          cp -r dist deploy/
-          
+          cp packages/infinite-scroll-list/example/index.html deploy/
+          cp -r packages/infinite-scroll-list/dist deploy/
+
           # 替换脚本引用路径，从绝对路径改为相对路径
           sed -i 's|src="/dist/infinite-scroll-list.min.js"|src="./dist/infinite-scroll-list.min.js"|g' deploy/index.html
-      
+
       - name: Setup Pages
         uses: actions/configure-pages@v3
-      
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: 'deploy'  # 只上传包含 index.html 和 dist 的目录
-  
+
   deploy:
     environment:
       name: github-pages
