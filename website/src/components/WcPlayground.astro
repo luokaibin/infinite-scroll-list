@@ -171,8 +171,10 @@ const base = import.meta.env.BASE_URL;
     };
 
     const base = (root as HTMLElement).dataset.base || '/';
+    // BASE_URL 可能带或不带尾部斜杠，统一补齐，避免拼接出错误路径
+    const basePrefix = base.endsWith('/') ? base : base + '/';
     const componentSrc = new URL(
-      base + 'components/' + component + '/index.esm.js',
+      basePrefix + 'components/' + component + '/index.esm.js',
       window.location.origin,
     ).href;
 
