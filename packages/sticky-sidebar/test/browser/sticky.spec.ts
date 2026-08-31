@@ -1,9 +1,15 @@
-import { expect, test } from '@playwright/test';
+import { expect } from '@playwright/test';
+
+import { test as base } from '@playwright/test';
 
 const HOST = '/packages/sticky-sidebar/test/fixtures/host.html';
+const VIEWPORT_H = 800;
 
-// Playwright 视口 600x800（顶层配置会被项目 devices 覆盖，这里在用例内显式声明视口）
-test.use({ viewport: { width: 600, height: 800 } });
+// 项目级 devices['Desktop Chrome'] 会覆盖顶层 viewport，这里显式固定测试视口
+const test = base.extend({});
+test.use({ viewport: { width: 600, height: VIEWPORT_H } });
+
+export { test };
 
 async function setup(
   page: import('@playwright/test').Page,
@@ -33,7 +39,7 @@ test.describe('sticky-sidebar（真实浏览器 + matchMedia/ResizeObserver/rAF�
 
     await expect
       .poll(() => page.evaluate(() => __s.top()), { timeout: 5000 })
-      .toBe(`-${ch - 800}px`);
+      .toBe(`-${ch - VIEWPORT_H}px`);
 
     const status = await page.evaluate(() => __s.status());
     expect(status.isAboveBreakpoint).toBe(true);
@@ -52,7 +58,7 @@ test.describe('sticky-sidebar（真实浏览器 + matchMedia/ResizeObserver/rAF�
     const ch1 = await page.evaluate(() => __s.contentHeight());
     await expect
       .poll(() => page.evaluate(() => __s.top()), { timeout: 5000 })
-      .toBe(`-${ch1 - 800}px`);
+      .toBe(`-${ch1 - VIEWPORT_H}px`);
 
     const returned = await page.evaluate(() => __s.setBreakpoint(1200));
     expect(returned).toBe(1200);
@@ -71,7 +77,7 @@ test.describe('sticky-sidebar（真实浏览器 + matchMedia/ResizeObserver/rAF�
     const ch2 = await page.evaluate(() => __s.contentHeight());
     await expect
       .poll(() => page.evaluate(() => __s.top()), { timeout: 5000 })
-      .toBe(`-${ch2 - 800}px`);
+      .toBe(`-${ch2 - VIEWPORT_H}px`);
 
     await page.evaluate(() => __s.setAttr('min-width', '1200'));
     await expect
@@ -85,12 +91,12 @@ test.describe('sticky-sidebar（真实浏览器 + matchMedia/ResizeObserver/rAF�
     const ch3 = await page.evaluate(() => __s.contentHeight());
     await expect
       .poll(() => page.evaluate(() => __s.top()), { timeout: 5000 })
-      .toBe(`-${ch3 - 800}px`);
+      .toBe(`-${ch3 - VIEWPORT_H}px`);
 
     await page.evaluate(() => __s.el.forceRecalculation());
     await expect
       .poll(() => page.evaluate(() => __s.top()), { timeout: 5000 })
-      .toBe(`-${ch3 - 800}px`);
+      .toBe(`-${ch3 - VIEWPORT_H}px`);
     expect(await page.evaluate(() => __s.status().isStickyActive)).toBe(true);
   });
 });
