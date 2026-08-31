@@ -43,4 +43,18 @@ export const components: ComponentMeta[] = [
       en: 'components/tab-indicator/',
     },
   },
+  {
+    name: '<sticky-sidebar>',
+    pkg: '@wc-lib/sticky-sidebar',
+    dir: 'sticky-sidebar',
+    desc: {
+      'zh-CN':
+        '响应式吸顶侧栏：断点检测、内容高度自动计算 top 偏移、rAF 性能优化。',
+      en: 'Responsive sticky sidebar: breakpoint detection, automatic top offset and rAF-optimized recalculation.',
+    },
+    docs: {
+      'zh-CN': 'components/sticky-sidebar/',
+      en: 'components/sticky-sidebar/',
+    },
+  },
 ];
