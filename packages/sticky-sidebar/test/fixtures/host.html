@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>sticky-sidebar 测试宿主页</title>
+  <style>
+    body { margin: 0; padding: 12px; font: 14px/1.6 -apple-system, system-ui, sans-serif; }
+    sticky-sidebar {
+      display: block;
+      width: 300px;
+      position: sticky;
+      top: 0;
+      transition: top 0.3s ease-in-out;
+    }
+    .sidebar-inner { background: #f0f4f8; padding: 12px; border-radius: 8px; }
+  </style>
+</head>
+<body>
+<script type="module">
+  import '/packages/sticky-sidebar/dist/index.esm.js';
+
+  const state = { el: null };
+
+  window.__s = {
+    state,
+    get el() { return state.el; },
+
+    /** 创建 sticky-sidebar，attrs 设置属性，innerHeight 设置内容区高度 */
+    setup(opts = {}) {
+      const el = document.createElement('sticky-sidebar');
+      for (const [k, v] of Object.entries(opts.attrs ?? {})) {
+        el.setAttribute(k, v);
+      }
+      const inner = document.createElement('div');
+      inner.className = 'sidebar-inner';
+      inner.style.height = (opts.innerHeight ?? 500) + 'px';
+      inner.textContent = 'sidebar-content';
+      el.appendChild(inner);
+      document.body.appendChild(el);
+      state.el = el;
+    },
+
+    /** 组件当前 style.top（'' 表示未设置） */
+    top() {
+      return state.el.style.top;
+    },
+
+    status() {
+      return state.el.getBreakpointStatus();
+    },
+
+    setBreakpoint(v) {
+      return state.el.setBreakpoint(v);
+    },
+
+    setAttr(k, v) {
+      state.el.setAttribute(k, v);
+    },
+
+    removeAttr(k) {
+      state.el.removeAttribute(k);
+    },
+
+    contentHeight() {
+      return state.el.getBoundingClientRect().height;
+    },
+
+    viewportHeight() {
+      return window.innerHeight;
+    },
+  };
+</script>
+</body>
+</html>
