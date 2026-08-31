@@ -1,0 +1,9 @@
+{
+  "name": "@wc-lib/runtime",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Shared runtime helpers for wc-lib web components (bundled into each package, not published)",
+  "type": "module",
+  "main": "index.js",
+  "types": "index.d.ts"
+}
