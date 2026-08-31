@@ -4,6 +4,9 @@ node_modules/
 # 构建产物
 dist/
 
+# 文档站（Astro）生成目录
+.astro/
+
 # 日志文件
 *.log
 npm-debug.log*
