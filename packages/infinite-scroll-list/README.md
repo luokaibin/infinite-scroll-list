@@ -18,12 +18,36 @@
 ## 安装
 
 ```bash
-# 使用pnpm安装依赖
-pnpm install
-
-# 构建组件
-pnpm build
+pnpm add @wc-lib/infinite-scroll-list
 ```
+
+## 加载方式
+
+### 工程化项目（推荐，npm + ESM）
+
+```ts
+// 应用入口（main.ts）
+import '@wc-lib/infinite-scroll-list';
+```
+
+组件代码随业务 bundle 打包，与业务代码同一执行序列，**不存在脚本加载竞态**：
+
+- 入口 SSR 安全：元素基类与注册逻辑均做了环境检测，Next.js / Nuxt 等服务端渲染框架中导入为 no-op，可在任意文件导入（React 中在 `'use client'` 组件里使用即可）
+- 多文件重复导入安全：ESM 单例求值，注册只执行一次
+- 需要按需加载时使用 `await import('@wc-lib/infinite-scroll-list')`（动态导入返回即注册完成）
+- 导出 `InfiniteScrollList` 类（类型与值）、`registerInfiniteScrollList()`、`version`
+
+### CDN / script 标签（非工程化页面兜底）
+
+```html
+<script src="https://unpkg.com/@wc-lib/infinite-scroll-list"></script>
+```
+
+IIFE 产物加载即注册。注意：该方式与业务代码存在加载时序竞态，**命令式方法调用**（`scrollToTop` 等）前请配合 `customElements.whenDefined('infinite-scroll-list')` 等待注册完成。
+
+### 版本纪律
+
+同一页面禁止混用 npm 与 CDN 两种来源；依赖树中保持单一版本（可用 pnpm `overrides` 锁定）。检测到重复注册时守卫会跳过并输出告警，不会抛错。
 
 ## 使用方法
 
