@@ -29,4 +29,18 @@ export const components: ComponentMeta[] = [
       en: 'components/infinite-scroll-list/',
     },
   },
+  {
+    name: '<tab-indicator>',
+    pkg: '@wc-lib/tab-indicator',
+    dir: 'tab-indicator',
+    desc: {
+      'zh-CN':
+        'Tab 导航指示器：下划线 / 胶囊双效果、平滑动画、吸顶滚动与智能横向滚动。',
+      en: 'Animated tab indicator with underline / capsule effects, sticky-scroll support and smart horizontal scrolling.',
+    },
+    docs: {
+      'zh-CN': 'components/tab-indicator/',
+      en: 'components/tab-indicator/',
+    },
+  },
 ];
