@@ -3,7 +3,7 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches:
-      - main  # 或者是你的默认分支，如master
+      - main
 
 permissions:
   contents: read
@@ -20,26 +20,42 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
-      
-      # 准备部署文件，只包含 example/index.html 和 dist 目录
-      - name: Prepare deployment files
-        run: |
-          mkdir -p deploy
-          cp example/index.html deploy/
-          cp -r dist deploy/
-          
-          # 替换脚本引用路径，从绝对路径改为相对路径
-          sed -i 's|src="/dist/infinite-scroll-list.min.js"|src="./dist/infinite-scroll-list.min.js"|g' deploy/index.html
-      
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24.x'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      # 1. 构建所有组件产物（packages 目录下各包的 dist）
+      - name: Build packages
+        run: pnpm build
+
+      # 2. 将组件产物同步到文档站静态目录（Playground 加载的就是这些产物）
+      - name: Sync component artifacts into website
+        run: pnpm --filter @wc-lib/website sync
+
+      # 3. 构建文档站
+      - name: Build docs site
+        run: pnpm --filter @wc-lib/website build
+
       - name: Setup Pages
         uses: actions/configure-pages@v3
-      
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: 'deploy'  # 只上传包含 index.html 和 dist 的目录
-  
+          path: 'website/dist'
+
   deploy:
     environment:
       name: github-pages

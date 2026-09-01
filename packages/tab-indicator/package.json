@@ -1,0 +1,50 @@
+{
+  "name": "@wc-lib/tab-indicator",
+  "version": "1.0.0",
+  "description": "Web Component for an animated tab indicator (underline or capsule)",
+  "type": "module",
+  "main": "dist/tab-indicator.min.js",
+  "module": "dist/index.esm.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.esm.js",
+      "default": "./dist/tab-indicator.min.js"
+    }
+  },
+  "sideEffects": true,
+  "files": [
+    "dist/",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "rollup -c",
+    "dev": "rollup -c -w",
+    "serve": "pnpm run dev & http-server -p 8081",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "web-component",
+    "tab",
+    "indicator",
+    "underline",
+    "capsule"
+  ],
+  "author": "",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/luokaibin/infinite-scroll-list"
+  },
+  "devDependencies": {
+    "@wc-lib/build-config": "workspace:*",
+    "@wc-lib/runtime": "workspace:*",
+    "rollup": "^3.20.0",
+    "tslib": "^2.5.0",
+    "typescript": "^5.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>tab-indicator 测试宿主页</title>
+  <style>
+    body { margin: 0; padding: 12px; font: 14px/1.6 -apple-system, system-ui, sans-serif; }
+    .tabs-container {
+      display: flex;
+      gap: 24px;
+      border-bottom: 1px solid #ddd;
+    }
+    .tab-item {
+      padding: 8px 16px;
+      cursor: pointer;
+      border: none;
+      background: none;
+      color: #999;
+      flex-shrink: 0;
+    }
+    .tab-item[data-actived="true"] { color: #1f2328; font-weight: 600; }
+  </style>
+</head>
+<body>
+<script type="module">
+  import '/packages/tab-indicator/dist/index.esm.js';
+
+  const state = { el: null, tabs: [] };
+
+  window.__t = {
+    state,
+    get el() { return state.el; },
+
+    /** 创建 tab-indicator + n 个 tab，按 attrs 设置属性 */
+    setup(opts = {}) {
+      const el = document.createElement('tab-indicator');
+      el.className = 'tabs-container';
+      for (const [k, v] of Object.entries(opts.attrs ?? {})) {
+        el.setAttribute(k, v);
+      }
+
+      const n = opts.tabCount ?? 4;
+      for (let i = 1; i <= n; i++) {
+        const tab = document.createElement('button');
+        tab.className = 'tab-item';
+        tab.setAttribute('role', 'tab-item');
+        tab.textContent = 'Tab ' + i;
+        if (i === 1) tab.setAttribute('data-actived', 'true');
+        el.appendChild(tab);
+      }
+
+      document.body.appendChild(el);
+      state.el = el;
+      state.tabs = Array.from(el.querySelectorAll('[role="tab-item"]'));
+    },
+
+    /** 切换激活 tab（走与真实使用一致的 setAttribute 路径） */
+    activate(index) {
+      state.tabs.forEach((t, i) =>
+        t.setAttribute('data-actived', i === index ? 'true' : 'false'),
+      );
+    },
+
+    /** 清除全部激活态 */
+    clearActive() {
+      state.tabs.forEach((t) => t.setAttribute('data-actived', 'false'));
+    },
+
+    /** 指示条当前几何（从 Shadow DOM 的 effect-element 读取） */
+    indicator() {
+      const t = state.el.shadowRoot.querySelector('.effect-element');
+      const num = (v) => parseFloat(v) || 0;
+      return {
+        width: num(t.style.width),
+        height: num(t.style.height),
+        transform: t.style.transform,
+      };
+    },
+
+    /** 第 index 个 tab 的几何 */
+    tabRect(index) {
+      const t = state.tabs[index];
+      return { offsetLeft: t.offsetLeft, offsetWidth: t.offsetWidth, offsetHeight: t.offsetHeight };
+    },
+
+    effectAttr() {
+      return state.el.getAttribute('effect');
+    },
+  };
+</script>
+</body>
+</html>

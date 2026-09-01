@@ -1,0 +1,34 @@
+---
+title: 新增组件
+description: 在 monorepo 中新增一个 Web Component 组件的完整流程
+---
+import { Steps } from '@astrojs/starlight/components';
+
+<Steps>
+1. **创建包目录**：在 `packages/` 下新建目录，如 `packages/your-component/`。
+2. **搭建骨架**（参考 `packages/infinite-scroll-list/`）：
+   - `package.json`：包名 `@wc-lib/your-component`，devDependencies 引入 `@wc-lib/build-config` 与 `@wc-lib/runtime`（`workspace:*`）
+   - `src/element.ts`：元素类定义（使用 SSR-safe 基类写法）
+   - `src/register.ts`：调用 `defineCustomElement` 注册（自带防重复注册守卫）
+   - `src/index.ts`：SSR 安全入口
+   - `src/version.ts`：版本常量
+   - `rollup.config.js`：调用共享构建工厂
+
+   ```js
+   import { createConfig } from '@wc-lib/build-config';
+
+   export default createConfig({
+     input: 'src/index.ts',
+     esmFile: 'dist/index.esm.js',
+     iifeFile: 'dist/your-component.min.js',
+     iifeName: 'YourComponent',
+   });
+   ```
+
+3. **注册 workspace**：根目录执行 `pnpm install`。
+4. **补测试**：`test/contract/` 契约用例改个包名即可复用；行为用例参考 `test/browser/`，手势工具库在 `internal/test-utils/`。
+5. **写文档**：在文档站 `website/src/content/docs/components/` 下新建 `your-component.mdx`（中文）与 `en/` 镜像（英文），用共享 `<WcPlayground>` 组件嵌入在线演示，并在首页组件卡片中添加条目。
+6. **发布**：合入 main 后通过 GitHub Release 触发 `pnpm -r publish` 自动发布到 npm。
+</Steps>
+
+构建会被 `pnpm build`（`pnpm -r run build`）自动纳入批量构建，文档站的组件产物由同步脚本自动复制，无需额外接入。

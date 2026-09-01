@@ -1,0 +1,49 @@
+{
+  "name": "@wc-lib/infinite-scroll-list",
+  "version": "1.3.3",
+  "description": "Web Component for infinite scroll loading",
+  "type": "module",
+  "main": "dist/infinite-scroll-list.min.js",
+  "module": "dist/index.esm.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.esm.js",
+      "default": "./dist/infinite-scroll-list.min.js"
+    }
+  },
+  "sideEffects": true,
+  "files": [
+    "dist/",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "rollup -c",
+    "dev": "rollup -c -w",
+    "serve": "pnpm run dev & http-server -p 8080",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "web-component",
+    "infinite-scroll",
+    "typescript"
+  ],
+  "author": "",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/luokaibin/infinite-scroll-list"
+  },
+  "devDependencies": {
+    "@wc-lib/build-config": "workspace:*",
+    "@wc-lib/runtime": "workspace:*",
+    "rollup": "^3.20.0",
+    "tslib": "^2.5.0",
+    "typescript": "^5.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "packageManager": "pnpm@10.20.0+sha512.cf9998222162dd85864d0a8102e7892e7ba4ceadebbf5a31f9c2fce48dfce317a9c53b9f6464d1ef9042cba2e02ae02a9f7c143a2b438cd93c91840f0192b9dd"
+}

@@ -1,0 +1,39 @@
+---
+title: 加载时序与 SSR
+description: 组件的 SSR 安全设计与加载竞态消除原理
+---
+import { Aside } from '@astrojs/starlight/components';
+
+## SSR 安全是如何实现的
+
+组件源码分为两层，都对服务端环境做了防御：
+
+1. **元素基类**（`element.ts`）：浏览器中等同于 `extends HTMLElement`；在 Node 等没有 `HTMLElement` 的环境中退化为空基类，保证类定义本身可以在服务端求值
+2. **注册守卫**（`register.ts`）：`defineCustomElement` 内部检测 `customElements` 是否存在，服务端调用为 no-op；同名元素已存在时跳过注册并输出告警
+
+因此业务入口 `import '@wc-lib/infinite-scroll-list'` 在 Next.js 等框架中：
+
+- 服务端渲染阶段导入：什么都不发生，不报错
+- 客户端 hydration 阶段导入：完成注册，元素正常工作
+
+<Aside type="note">
+  React 项目请在 `'use client'` 组件中导入。`'use client'` 组件在 SSR 时模块代码
+  仍会在服务端执行一遍，所以包内的环境防御才是真正的保障，`'use client'` 只是接入姿势。
+</Aside>
+
+## 加载竞态：为什么 npm 通道没有这个问题
+
+CDN script 模式下，组件代码与业务代码是两条互不感知的加载链路，业务代码可能在组件注册前执行，命令式调用直接报错。
+
+npm ESM 模式下，`import` 语句被提升且被依赖模块**一定先于**使用方执行——组件注册完成后业务代码才开始运行，竞态窗口在物理上不存在。
+
+补充一点浏览器机制：即使元素先进入 DOM、注册后到，`customElements.define` 的瞬间会自动升级（upgrade）已有元素，`connectedCallback` 与已有属性的 `attributeChangedCallback` 都会补执行。因此声明式用法（attribute + 事件监听）天然时序安全。
+
+## 多版本与重复注册
+
+- 同名元素重复 `define` 会抛异常，组件内置守卫将其降级为「跳过注册 + 控制台告警」
+- 依赖树出现多版本时，先注册的版本生效；建议用 pnpm `overrides` 锁定单一版本
+
+## 回归防线
+
+以上承诺由契约测试在 CI 中持续验证（对构建产物执行 Node 导入断言、publint 检查等），任何破坏 SSR 安全或打包配置的改动都会在合并前被拦下。

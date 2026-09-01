@@ -11,7 +11,7 @@ jobs:
     permissions:
       id-token: write
       contents: read
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -29,12 +29,13 @@ jobs:
           cache: 'pnpm'
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --no-frozen-lockfile
 
-      - name: Build project
+      - name: Build packages
         run: pnpm run build
 
       - name: Publish to npm
         # 关键：不再需要使用 secrets.NPM_TOKEN
         # npm CLI (11.5.1+) 会自动检测 OIDC 环境进行发布
-        run: pnpm publish --no-git-checks --access public
+        # -r 递归发布所有子包，根包为 private 会被自动跳过
+        run: pnpm -r publish --no-git-checks --access public

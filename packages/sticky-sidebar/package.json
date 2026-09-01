@@ -1,0 +1,50 @@
+{
+  "name": "@wc-lib/sticky-sidebar",
+  "version": "1.0.0",
+  "description": "Web Component for sticky sidebar with responsive breakpoint support",
+  "type": "module",
+  "main": "dist/sticky-sidebar.min.js",
+  "module": "dist/index.esm.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.esm.js",
+      "default": "./dist/sticky-sidebar.min.js"
+    }
+  },
+  "sideEffects": true,
+  "files": [
+    "dist/",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "rollup -c",
+    "dev": "rollup -c -w",
+    "serve": "pnpm run dev & http-server -p 8082",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "web-component",
+    "sticky",
+    "sidebar",
+    "responsive",
+    "breakpoint"
+  ],
+  "author": "",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/luokaibin/infinite-scroll-list"
+  },
+  "devDependencies": {
+    "@wc-lib/build-config": "workspace:*",
+    "@wc-lib/runtime": "workspace:*",
+    "rollup": "^3.20.0",
+    "tslib": "^2.5.0",
+    "typescript": "^5.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

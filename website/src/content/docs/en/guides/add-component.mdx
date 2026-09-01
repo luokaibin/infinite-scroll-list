@@ -1,0 +1,34 @@
+---
+title: Add a Component
+description: The full workflow for adding a new Web Component to the monorepo
+---
+import { Steps } from '@astrojs/starlight/components';
+
+<Steps>
+1. **Create the package directory**: `packages/your-component/`.
+2. **Scaffold it** (mirror `packages/infinite-scroll-list/`):
+   - `package.json`: name it `@wc-lib/your-component`, add `@wc-lib/build-config` and `@wc-lib/runtime` (`workspace:*`) as devDependencies
+   - `src/element.ts`: the element class (use the SSR-safe base class pattern)
+   - `src/register.ts`: registration via `defineCustomElement` (duplicate guard included)
+   - `src/index.ts`: the SSR-safe entry
+   - `src/version.ts`: version constant
+   - `rollup.config.js`: use the shared build factory
+
+   ```js
+   import { createConfig } from '@wc-lib/build-config';
+
+   export default createConfig({
+     input: 'src/index.ts',
+     esmFile: 'dist/index.esm.js',
+     iifeFile: 'dist/your-component.min.js',
+     iifeName: 'YourComponent',
+   });
+   ```
+
+3. **Register the workspace**: run `pnpm install` at the repo root.
+4. **Add tests**: contract tests in `test/contract/` are reusable with just a package-name change; behavior tests live in `test/browser/` with the gesture toolkit in `internal/test-utils/`.
+5. **Write the docs**: add `your-component.mdx` under `website/src/content/docs/components/` (Chinese) and its `en/` mirror (English). Embed the live demo with the shared `<WcPlayground>` component and add an entry card to the home page.
+6. **Release**: merging to main and publishing a GitHub Release triggers `pnpm -r publish` to npm automatically.
+</Steps>
+
+Builds are picked up automatically by `pnpm build` (`pnpm -r run build`), and the docs site syncs your component artifacts through the shared sync script — no extra wiring needed.

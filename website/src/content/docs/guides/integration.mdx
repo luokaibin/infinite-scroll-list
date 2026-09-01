@@ -1,0 +1,47 @@
+---
+title: 接入方式
+description: npm ESM 主通道与 CDN 兜底通道的接入细节
+---
+import { Aside, Tabs, TabItem } from '@astrojs/starlight/components';
+
+组件采用 **npm ESM 为主、CDN IIFE 兜底**的双产物分发策略。
+
+## npm + ESM（工程化项目，主通道）
+
+```ts
+import '@wc-lib/infinite-scroll-list';
+```
+
+组件代码随业务 bundle 打包，与业务代码同一执行序列，**不存在脚本加载竞态**：
+
+- 入口 SSR 安全：可在任意文件导入，服务端渲染框架中为 no-op
+- 多文件重复导入安全：ESM 单例求值，注册只执行一次
+- 按需加载使用 `await import('@wc-lib/infinite-scroll-list')`，返回即注册完成
+- 附带 TypeScript 类型与摇树友好的 ESM 结构
+
+<Aside type="caution">
+  package.json 声明了 `sideEffects: true`：导入本包的副作用就是注册自定义元素，
+  打包器不会将其摇掉，请勿改动该字段。
+</Aside>
+
+## CDN + script（非工程化页面，兜底）
+
+```html
+<script src="https://unpkg.com/@wc-lib/infinite-scroll-list"></script>
+```
+
+IIFE 产物加载即注册。该方式与业务代码存在加载时序竞态，命令式方法调用前请等待注册完成：
+
+```js
+customElements.whenDefined('infinite-scroll-list').then(() => {
+  // 此后调用 scrollToTop 等方法才是安全的
+});
+```
+
+声明式用法（attribute + 事件监听）不受竞态影响，无需等待。
+
+## 版本纪律
+
+- 同一页面**禁止混用** npm 与 CDN 两种来源
+- 依赖树中保持单一版本，必要时用 pnpm `overrides` 锁定
+- 检测到重复注册时组件会跳过并输出告警，不会抛错

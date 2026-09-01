@@ -1,0 +1,242 @@
+---
+/**
+ * 共享 Playground：仓库内所有 Web 组件共用，按 props 数据驱动，无每组件成本。
+ *
+ * - 左侧 CodeMirror 编辑 HTML，右侧 iframe 沙箱实时预览（400ms 防抖）
+ * - iframe 以静态资源方式加载 packages 目录下各组件 dist 构建出的产物，
+ *   因此演示的永远是「当前构建」的组件（dist 视角持续验证）
+ * - 模板由各组件文档页以当前语言传入，本组件不感知具体组件
+ */
+interface Template {
+  label: string;
+  code: string;
+}
+
+interface Props {
+  /** 组件目录名（public/components/ 下的目录，由 sync 脚本从组件包 dist 复制） */
+  component: string;
+  /** 预设模板（按当前语言本地化） */
+  templates: Template[];
+}
+
+const { component, templates } = Astro.props;
+const base = import.meta.env.BASE_URL;
+---
+
+<div class="wc-pg" data-component={component} data-base={base}>
+  <script
+    type="application/json"
+    class="wc-pg-data"
+    set:html={JSON.stringify({ component, templates }).replace(/</g, '\\u003c')}
+  />
+  <div class="wc-pg-tabs" role="tablist">
+    {templates.map((t, i) => (
+      <button
+        type="button"
+        class:list={['wc-pg-tab', i === 0 && 'is-active']}
+        data-index={i}
+      >
+        {t.label}
+      </button>
+    ))}
+  </div>
+  <div class="wc-pg-body">
+    <div class="wc-pg-editor" />
+    <iframe class="wc-pg-preview" sandbox="allow-scripts" title="组件实时预览" />
+  </div>
+</div>
+
+<style is:global>
+  .wc-pg {
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: 0.75rem;
+    overflow: hidden;
+  }
+
+  .wc-pg-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    padding: 0.35rem 0.5rem 0;
+    border-bottom: 1px solid var(--sl-color-gray-5);
+    background: var(--sl-color-gray-2);
+  }
+
+  .wc-pg-tab {
+    border: 0;
+    background: transparent;
+    color: var(--sl-color-gray-3);
+    font-size: 0.8rem;
+    padding: 0.4rem 0.8rem;
+    border-radius: 0.4rem 0.4rem 0 0;
+    cursor: pointer;
+  }
+
+  .wc-pg-tab:hover {
+    color: var(--sl-color-white);
+  }
+
+  .wc-pg-tab.is-active {
+    color: var(--sl-color-text-accent);
+    background: var(--sl-color-gray-1);
+  }
+
+  .wc-pg-body {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    /* 固定行高与容器高度：组件演示（如吸顶偏移）依赖确定性的 iframe 视口尺寸 */
+    grid-template-rows: 340px;
+    height: 340px;
+    overflow: hidden;
+  }
+
+  .wc-pg-editor {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    border-right: 1px solid var(--sl-color-gray-5);
+    background: var(--sl-color-gray-1);
+  }
+
+  .wc-pg-editor .cm-editor {
+    flex: 1;
+    font-size: 13px;
+    background: var(--sl-color-gray-1);
+  }
+
+  .wc-pg-editor .cm-editor.cm-focused {
+    outline: none;
+  }
+
+  .wc-pg-editor .cm-scroller {
+    overflow: auto;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+
+  .wc-pg-preview {
+    width: 100%;
+    height: 100%;
+    min-height: 340px;
+    border: 0;
+    background: #fff;
+  }
+
+  @media (max-width: 640px) {
+    .wc-pg-body {
+      grid-template-columns: 1fr;
+      height: auto;
+      grid-template-rows: 220px 300px;
+    }
+
+    .wc-pg-editor {
+      border-right: 0;
+      border-bottom: 1px solid var(--sl-color-gray-5);
+    }
+  }
+</style>
+
+<script>
+  import { EditorView, basicSetup } from 'codemirror';
+  import { html as htmlLang } from '@codemirror/lang-html';
+  import { oneDark } from '@codemirror/theme-one-dark';
+
+  interface Template {
+    label: string;
+    code: string;
+  }
+
+  const DEBOUNCE_MS = 400;
+
+  function buildSrcdoc(
+    code: string,
+    componentSrc: string,
+  ): string {
+    // 说明：产物为自注册的 ESM，动态 import 完成前元素先进入 DOM，
+    // 依赖浏览器 upgrade 机制自动升级 —— 与真实使用方时序一致
+    const parts = [
+      '<!DOCTYPE html><html><head><meta charset="utf-8">',
+      '<style>body{margin:0;padding:12px;font:14px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:#1f2328;background:#fff}</style>',
+      '</head><body>',
+      code,
+      '<script type="module">import(' +
+        JSON.stringify(componentSrc) +
+        ').catch(function (e) { console.error("组件加载失败:", e); });<\/script>',
+      '</body></html>',
+    ];
+    return parts.join('\n');
+  }
+
+  function init(root: Element): void {
+    const dataEl = root.querySelector('.wc-pg-data');
+    if (!dataEl) return;
+    const { component, templates } = JSON.parse(dataEl.textContent!) as {
+      component: string;
+      templates: Template[];
+    };
+
+    const base = (root as HTMLElement).dataset.base || '/';
+    // BASE_URL 可能带或不带尾部斜杠，统一补齐，避免拼接出错误路径
+    const basePrefix = base.endsWith('/') ? base : base + '/';
+    const componentSrc = new URL(
+      basePrefix + 'components/' + component + '/index.esm.js',
+      window.location.origin,
+    ).href;
+
+    const tabs = Array.from(root.querySelectorAll<HTMLButtonElement>('.wc-pg-tab'));
+    const editorHost = root.querySelector<HTMLElement>('.wc-pg-editor')!;
+    const frame = root.querySelector<HTMLIFrameElement>('.wc-pg-preview')!;
+    let active = 0;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+
+    const view = new EditorView({
+      doc: templates[0].code,
+      extensions: [
+        basicSetup,
+        htmlLang(),
+        oneDark,
+        EditorView.lineWrapping,
+        EditorView.updateListener.of((v) => {
+          if (!v.docChanged) return;
+          clearTimeout(timer);
+          timer = setTimeout(() => {
+            frame.srcdoc = buildSrcdoc(
+              view.state.doc.toString(),
+              componentSrc,
+            );
+          }, DEBOUNCE_MS);
+        }),
+      ],
+      parent: editorHost,
+    });
+
+    function render(): void {
+      frame.srcdoc = buildSrcdoc(
+        view.state.doc.toString(),
+        componentSrc,
+      );
+    }
+
+    function select(index: number): void {
+      active = index;
+      tabs.forEach((t, i) => t.classList.toggle('is-active', i === active));
+      view.dispatch({
+        changes: {
+          from: 0,
+          to: view.state.doc.length,
+          insert: templates[active].code,
+        },
+      });
+      render();
+    }
+
+    tabs.forEach((tab) => {
+      tab.addEventListener('click', () => {
+        select(Number(tab.dataset.index));
+      });
+    });
+
+    render();
+  }
+
+  document.querySelectorAll('.wc-pg').forEach(init);
+</script>

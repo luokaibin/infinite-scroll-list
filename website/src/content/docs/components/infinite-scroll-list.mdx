@@ -1,0 +1,222 @@
+---
+title: 无限滚动加载组件
+description: 基于 Web Component 的无限滚动加载组件，支持下拉刷新与自定义插槽
+---
+import WcPlayground from '../../../components/WcPlayground.astro';
+import { Aside, Tabs, TabItem } from '@astrojs/starlight/components';
+
+`<infinite-scroll-list>` 是一个无限滚动加载组件：滚动触底自动派发加载事件、移动端支持下拉刷新、支持自定义加载与空态插槽，容器自适应。
+
+## 在线演示
+
+左下编辑器可直接修改代码，右侧实时预览。
+
+export const templates = [
+  {
+    label: '基本用法',
+    code: `<infinite-scroll-list
+  id="demo"
+  has-next-page="true"
+  on-end-reached-threshold="60"
+  style="height: 70vh; border: 1px solid #e5e7eb"
+>
+  <div id="list"></div>
+  <div slot="loading" style="padding: 12px; text-align: center; color: #666">
+    正在加载更多数据...
+  </div>
+  <div slot="no-data" style="padding: 12px; text-align: center; color: #999">
+    已经到底啦，没有更多数据了
+  </div>
+</infinite-scroll-list>
+
+<script>
+  var page = 1;
+  var totalPages = 3;
+  var list = document.getElementById('list');
+  var el = document.getElementById('demo');
+
+  function appendItems(n) {
+    for (var i = 0; i < n; i++) {
+      var item = document.createElement('div');
+      item.style.cssText = 'padding:12px;border-bottom:1px solid #eee';
+      item.textContent = '列表项 #' + (list.children.length + 1);
+      list.appendChild(item);
+    }
+  }
+
+  appendItems(30);
+  el.addEventListener('end-reached', function () {
+    if (page >= totalPages) return;
+    setTimeout(function () {
+      page++;
+      appendItems(15);
+      el.setAttribute('has-next-page', page < totalPages ? 'true' : 'false');
+    }, 600);
+  });
+<\/script>`,
+  },
+  {
+    label: '下拉刷新',
+    code: `<infinite-scroll-list
+  id="demo"
+  has-next-page="true"
+  enable-refresh="true"
+  refresh-threshold="60"
+  style="height: 70vh; border: 1px solid #e5e7eb"
+>
+  <div slot="refresh" style="padding: 8px; text-align: center; color: #4b6bfb">
+    <span id="refresh-text">下拉刷新</span>
+  </div>
+  <div id="list"></div>
+  <div slot="no-data" style="padding: 12px; text-align: center; color: #999">
+    已经到底啦
+  </div>
+</infinite-scroll-list>
+
+<script>
+  var el = document.getElementById('demo');
+  var text = document.getElementById('refresh-text');
+  var list = document.getElementById('list');
+  for (var i = 0; i < 30; i++) {
+    var item = document.createElement('div');
+    item.style.cssText = 'padding:12px;border-bottom:1px solid #eee';
+    item.textContent = '列表项 #' + (i + 1);
+    list.appendChild(item);
+  }
+
+  el.addEventListener('refresh-pulling', function (e) {
+    text.textContent = e.detail.progress >= 1 ? '释放以刷新' : '下拉刷新';
+  });
+
+  el.addEventListener('refresh', function () {
+    el.setAttribute('is-refreshing', 'true');
+    text.textContent = '刷新中...';
+    setTimeout(function () {
+      el.setAttribute('is-refreshing', 'false');
+      text.textContent = '下拉刷新';
+    }, 1000);
+  });
+
+  // 桌面端体验辅助：把鼠标拖拽转换为触摸事件（移动端无需此段）
+  var fire = function (type, y) {
+    var touch = new Touch({ identifier: 1, target: el, clientX: 150, clientY: y, pageX: 150, pageY: y });
+    el.dispatchEvent(new TouchEvent(type, {
+      bubbles: true,
+      cancelable: true,
+      touches: type === 'touchend' ? [] : [touch],
+      changedTouches: [touch],
+    }));
+  };
+  var dragging = false;
+  el.addEventListener('mousedown', function (e) {
+    dragging = true;
+    fire('touchstart', e.pageY);
+  });
+  window.addEventListener('mousemove', function (e) {
+    if (dragging) fire('touchmove', e.pageY);
+  });
+  window.addEventListener('mouseup', function (e) {
+    if (!dragging) return;
+    dragging = false;
+    fire('touchmove', e.pageY);
+    fire('touchend', e.pageY);
+  });
+<\/script>`,
+  },
+  {
+    label: '程序化刷新',
+    code: `<infinite-scroll-list
+  id="demo"
+  has-next-page="true"
+  enable-refresh="true"
+  refresh-threshold="60"
+  style="height: 70vh; border: 1px solid #e5e7eb"
+>
+  <div slot="refresh" style="padding: 8px; text-align: center; color: #4b6bfb">刷新中</div>
+  <div id="list"></div>
+</infinite-scroll-list>
+
+<button id="btn" style="margin-top: 8px">回到顶部并刷新</button>
+
+<script>
+  var el = document.getElementById('demo');
+  var list = document.getElementById('list');
+  for (var i = 0; i < 40; i++) {
+    var item = document.createElement('div');
+    item.style.cssText = 'padding:12px;border-bottom:1px solid #eee';
+    item.textContent = '列表项 #' + (i + 1);
+    list.appendChild(item);
+  }
+  el.addEventListener('refresh', function () {
+    setTimeout(function () {
+      el.setAttribute('is-refreshing', 'false');
+    }, 800);
+  });
+  document.getElementById('btn').addEventListener('click', function () {
+    el.scrollToTopAndRefresh();
+  });
+<\/script>`,
+  },
+];
+
+<WcPlayground component="infinite-scroll-list" templates={templates} />
+
+<Aside type="tip">
+  「下拉刷新」为移动端触摸手势，模板内置了鼠标拖拽到触摸事件的转换辅助，桌面端直接按住列表拖拽即可体验。
+</Aside>
+
+## 安装
+
+<Tabs>
+  <TabItem label="npm">
+    ```sh
+    pnpm add @wc-lib/infinite-scroll-list
+    ```
+  </TabItem>
+  <TabItem label="CDN">
+    ```html
+    <script src="https://unpkg.com/@wc-lib/infinite-scroll-list"></script>
+    ```
+  </TabItem>
+</Tabs>
+
+使用方式与加载时序说明见 [快速开始](../../guides/getting-started/) 与 [加载时序与 SSR](../../guides/ssr-and-timing/)。
+
+## 属性
+
+| 属性名 | 类型 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `on-end-reached-threshold` | Number | `0` | 距离底部多少像素时触发加载事件 |
+| `has-next-page` | Boolean | `false` | 是否还有下一页数据，仅在为 `true` 时触发触底事件 |
+| `enable-refresh` | Boolean | `false` | 是否启用下拉刷新（移动端专用），为 `true` 时刷新容器参与布局 |
+| `refresh-threshold` | Number | `60` | 下拉多少像素时触发刷新事件 |
+| `refresh-feedback-threshold` | Number | `40` | 下拉反馈阈值，低于此距离不产生下拉反馈 |
+| `is-refreshing` | Boolean | `false` | 是否正在刷新中，刷新完成后应置回 `false` |
+
+## 事件
+
+| 事件名 | 说明 |
+| --- | --- |
+| `end-reached` | 滚动到底部时触发，仅当 `has-next-page` 为 `true` 时派发 |
+| `refresh` | 下拉达到阈值时触发，`detail` 为空 |
+| `refresh-pulling` | 下拉过程中持续触发，`detail` 包含 `distance`、`threshold`、`progress`（0~1） |
+
+## 方法
+
+| 方法名 | 返回值 | 说明 |
+| --- | --- | --- | --- |
+| `scrollToTop()` | `Promise<void>` | 平滑滚动到顶部并等待滚动结束 |
+| `scrollToTopAndRefresh()` | `Promise<void>` | 原子化刷新：滚动到顶部的同时展开刷新容器并触发 `refresh` |
+
+## 插槽
+
+| 插槽名 | 说明 |
+| --- | --- |
+| default（默认） | 列表内容 |
+| `loading` | 触底加载中的显示内容，`has-next-page="true"` 且触底时展示 |
+| `no-data` | 没有更多数据时的显示内容，`has-next-page="false"` 时展示 |
+| `refresh` | 下拉刷新区域内容，仅 `enable-refresh="true"` 时参与布局 |
+
+## 浏览器兼容
+
+支持所有现代浏览器（Chrome / Firefox / Safari / Edge）。下拉刷新依赖触摸事件，仅移动端（或开启触摸模拟的环境）生效。

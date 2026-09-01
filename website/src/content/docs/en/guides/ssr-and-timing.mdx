@@ -1,0 +1,40 @@
+---
+title: Loading Timing & SSR
+description: How the SSR-safe design works and how loading races are eliminated
+---
+import { Aside } from '@astrojs/starlight/components';
+
+## How SSR safety is implemented
+
+The component source is split into two layers, both hardened against server environments:
+
+1. **Element base class** (`element.ts`): equivalent to `extends HTMLElement` in the browser; in environments without `HTMLElement` (Node etc.) it falls back to an empty base class, so the class definition itself can be evaluated on the server
+2. **Registration guard** (`register.ts`): `defineCustomElement` checks whether `customElements` exists — calls on the server are no-ops; if an element with the same tag is already defined, registration is skipped with a warning
+
+Therefore `import '@wc-lib/infinite-scroll-list'` in Next.js and friends:
+
+- During server rendering: nothing happens, no errors
+- During client hydration: the element is registered and starts working
+
+<Aside type="note">
+  In React, import it inside a `'use client'` component. Client components still execute on
+  the server during SSR — which is why the guard inside the package is the real protection,
+  and `'use client'` is just how you opt into interactivity.
+</Aside>
+
+## Loading race: why the npm channel has none
+
+With a CDN script, component code and app code load on two independent timelines — your app may execute before the component registers, and imperative calls throw.
+
+With npm ESM, `import` statements are hoisted and the imported module **always executes before** its importer — registration completes before your app runs, so the race window physically cannot exist.
+
+One more browser mechanism worth knowing: if an element enters the DOM before registration, `customElements.define` upgrades it in place — `connectedCallback` and `attributeChangedCallback` (for existing attributes) run retroactively. Declarative usage (attributes + event listeners) is timing-safe by design.
+
+## Multi-version & duplicate registration
+
+- A second `define` for the same tag throws — the built-in guard downgrades that to "skip + console warning"
+- If multiple versions end up in the dependency tree, the first-registered one wins; pin a single version with pnpm `overrides`
+
+## Regression guard
+
+These promises are verified continuously by contract tests in CI (Node import assertions against the built artifacts, publint checks, etc.), so any change that breaks SSR safety or packaging fails before merge.

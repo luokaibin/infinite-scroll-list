@@ -1,0 +1,16 @@
+{
+  "name": "@wc-lib/build-config",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Shared rollup build config factory for wc-lib monorepo (build-time only)",
+  "type": "module",
+  "main": "index.js",
+  "dependencies": {
+    "@rollup/plugin-node-resolve": "^15.0.0",
+    "@rollup/plugin-typescript": "^11.0.0",
+    "rollup": "^3.20.0",
+    "rollup-plugin-terser": "^7.0.2",
+    "tslib": "^2.5.0",
+    "typescript": "^5.0.0"
+  }
+}
